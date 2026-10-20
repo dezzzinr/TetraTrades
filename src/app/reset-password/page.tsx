@@ -39,7 +39,7 @@ function ResetPasswordForm() {
 
   return (
     <div className="auth-modal" style={{ margin: "0 auto" }}>
-      <div className="modal-brand"><div className="brand-icon"><KeyRound size={20} strokeWidth={3} /></div>Ava<span>Trades</span></div>
+      <div className="modal-brand"><div className="brand-icon"><KeyRound size={20} strokeWidth={3} /></div>Tetra<span>Trades</span></div>
       {!done ? <>
         <h2>Reset your password</h2>
         <p>{token ? "Choose a new password for your account." : "This link is missing its reset token. Make sure you opened the full link from your email, or request a new one from the sign-in page."}</p>

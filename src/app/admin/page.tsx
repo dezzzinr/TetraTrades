@@ -877,7 +877,7 @@ function AdminPageInner() {
   return <div className="admin-shell">
     {mobileMenu && <div className="mobile-overlay" onClick={() => setMobileMenu(false)}/>}
     <aside className={`sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
-      <div className="brand" onClick={() => go("overview")}><div className="brand-icon"><Activity size={23} strokeWidth={3}/></div><span>Ava<span>Trades</span></span><button className="mobile-close" onClick={(e) => { e.stopPropagation(); setMobileMenu(false); }}><X size={19}/></button></div>
+      <div className="brand" onClick={() => go("overview")}><div className="brand-icon"><Activity size={23} strokeWidth={3}/></div><span>Tetra<span>Trades</span></span><button className="mobile-close" onClick={(e) => { e.stopPropagation(); setMobileMenu(false); }}><X size={19}/></button></div>
       <div className="sidebar-body">{navGroups.map(group => <div className="nav-group" key={group.label}><div className="nav-label">{group.label}</div>{group.items.map(item => { const Icon = item.icon; return <button key={item.name} className={`nav-item ${tab === item.name ? "selected" : ""}`} onClick={() => go(item.name)}><Icon size={19} strokeWidth={tab === item.name ? 2.25 : 1.8}/><span>{item.label}</span></button>; })}</div>)}</div>
       <div className="sidebar-bottom">
         <div className="help-card"><span className="help-bubble"><ShieldCheck size={18}/></span><strong>{admin?.name}</strong><p>{admin?.email ?? "Signed in as admin"}</p><a href="/" style={{ display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>Exit to app <ArrowRight size={14}/></a></div>
