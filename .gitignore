@@ -1,0 +1,15 @@
+# Dependencies and Next.js build output
+node_modules/
+.next/
+.vercel/
+out/
+*.tsbuildinfo
+
+# Keep database URLs and other secrets out of Git
+.env
+.env.*
+!.env.example
+
+# Local tooling
+.DS_Store
+*.log

@@ -1,0 +1,18 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } });
+page.setDefaultTimeout(10000);
+await page.goto("http://localhost:3000", { waitUntil: "networkidle" });
+await page.click(".profile-button");
+await page.click("text=Sign in");
+await page.waitForSelector(".auth-modal");
+await page.fill(".auth-modal input:not([type=password])", "jane@nexatrade.test");
+await page.fill(".auth-modal input[type=password]", "userpass123");
+await page.click(".auth-modal button.primary-btn");
+await page.waitForTimeout(1500);
+await page.screenshot({ path: "/tmp/shot-overview-ngn.png", fullPage: true });
+await page.click("text=Markets");
+await page.waitForTimeout(1500);
+await page.screenshot({ path: "/tmp/shot-markets-ngn.png" });
+await browser.close();
+console.log("done");
