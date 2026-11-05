@@ -1,6 +1,6 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { DEFAULT_LANGUAGE, LanguageCode, isLanguageCode } from "@/lib/i18n";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { DEFAULT_LANGUAGE, LanguageCode, isLanguageCode, languageInfo } from "@/lib/i18n";
 import { UI_STRINGS } from "@/lib/ui-strings";
 import { TRANSLATION_OVERRIDES } from "@/lib/i18n-dictionaries";
 
@@ -10,6 +10,7 @@ type LanguageContextValue = {
   setLanguage: (lang: LanguageCode) => void;
   t: (text: string) => string;
   translating: boolean;
+  requestTranslation: (text: string) => void;
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -36,9 +37,37 @@ export function readStoredLanguage(): LanguageCode | null {
 // cached both server-side (shared across every user, forever) and in this
 // browser's localStorage (instant on repeat visits).
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<LanguageCode>(() => readStoredLanguage() ?? DEFAULT_LANGUAGE);
+  // Match the server's default on the first browser render. Restore the local
+  // preference after hydration so translated text never changes the SSR tree.
+  const [language, setLanguageState] = useState<LanguageCode>(DEFAULT_LANGUAGE);
   const [dict, setDict] = useState<Dictionary>({});
   const [translating, setTranslating] = useState(false);
+  const dynamicQueue = useRef(new Set<string>());
+  const dynamicInFlight = useRef(new Set<string>());
+  const dynamicTimer = useRef<number | null>(null);
+  const flushDynamicRef = useRef<() => void>(() => {});
+  const activeLanguage = useRef(language);
+
+  useEffect(() => {
+    activeLanguage.current = language;
+  }, [language]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLanguageState(readStoredLanguage() ?? DEFAULT_LANGUAGE), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const info = languageInfo(language);
+    document.documentElement.lang = info.code;
+    document.documentElement.dir = info.rtl ? "rtl" : "ltr";
+  }, [language]);
+
+  useEffect(() => {
+    dynamicQueue.current.clear();
+    if (dynamicTimer.current !== null) window.clearTimeout(dynamicTimer.current);
+    dynamicTimer.current = null;
+  }, [language]);
 
   useEffect(() => {
     // English needs no dictionary at all - t() always returns the raw
@@ -49,13 +78,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (language === "en") return;
     let cancelled = false;
     (async () => {
+      const merged: Dictionary = {};
       try {
         const raw = window.localStorage.getItem(dictCacheKey(language));
-        if (raw) setDict(JSON.parse(raw));
+        if (raw) {
+          const cached = JSON.parse(raw) as Dictionary;
+          Object.assign(merged, cached);
+          setDict(cached);
+        } else setDict({});
       } catch { /* ignore corrupt cache */ }
       setTranslating(true);
-      const merged: Dictionary = {};
-      const CHUNK = 150;
+      const CHUNK = 400;
       for (let i = 0; i < UI_STRINGS.length; i += CHUNK) {
         if (cancelled) return;
         const chunk = UI_STRINGS.slice(i, i + CHUNK);
@@ -68,12 +101,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
           const result = await res.json();
           if (Array.isArray(result.translations)) {
             chunk.forEach((text: string, idx: number) => { merged[text] = result.translations[idx] ?? text; });
+            if (!cancelled) {
+              setDict(previous => ({ ...previous, ...Object.fromEntries(chunk.map(text => [text, merged[text]])) }));
+              try { window.localStorage.setItem(dictCacheKey(language), JSON.stringify(merged)); } catch { /* ignore quota errors */ }
+            }
           }
         } catch { /* leave this chunk untranslated for now */ }
       }
       if (!cancelled) {
-        setDict(merged);
-        try { window.localStorage.setItem(dictCacheKey(language), JSON.stringify(merged)); } catch { /* ignore quota errors */ }
         setTranslating(false);
       }
     })();
@@ -82,6 +117,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const setLanguage = useCallback((lang: LanguageCode) => {
     setLanguageState(lang);
+    if (lang === "en") {
+      setDict({});
+      setTranslating(false);
+    }
     try { window.localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
   }, []);
 
@@ -93,7 +132,46 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return TRANSLATION_OVERRIDES[language]?.[text] ?? dict[text] ?? text;
   }, [language, dict]);
 
-  const value = useMemo(() => ({ language, setLanguage, t, translating }), [language, setLanguage, t, translating]);
+  const flushDynamic = useCallback(async () => {
+    dynamicTimer.current = null;
+    const batch = [...dynamicQueue.current].slice(0, 400);
+    batch.forEach(value => { dynamicQueue.current.delete(value); dynamicInFlight.current.add(`${language}\u0000${value}`); });
+    if (!batch.length) return;
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language, texts: batch }),
+      });
+      const result = await response.json();
+      if (Array.isArray(result.translations)) {
+        const translated = Object.fromEntries(batch.map((value, index) => [value, result.translations[index] ?? value]));
+        if (activeLanguage.current === language) setDict(previous => ({ ...previous, ...translated }));
+        try {
+          const raw = window.localStorage.getItem(dictCacheKey(language));
+          const cache = raw ? JSON.parse(raw) as Dictionary : {};
+          window.localStorage.setItem(dictCacheKey(language), JSON.stringify({ ...cache, ...translated }));
+        } catch { /* ignore corrupt/oversized browser caches */ }
+      }
+    } catch { /* dynamic content remains in its original language if translation is unavailable */ }
+    finally {
+      batch.forEach(value => dynamicInFlight.current.delete(`${language}\u0000${value}`));
+      if (dynamicQueue.current.size && dynamicTimer.current === null) {
+        dynamicTimer.current = window.setTimeout(() => { void flushDynamicRef.current(); }, 0);
+      }
+    }
+  }, [language]);
+  useEffect(() => {
+    flushDynamicRef.current = () => { void flushDynamic(); };
+  }, [flushDynamic]);
+
+  const requestTranslation = useCallback((text: string) => {
+    if (language === "en" || !text.trim() || UI_STRINGS.includes(text) || dict[text] || TRANSLATION_OVERRIDES[language]?.[text]) return;
+    if (dynamicInFlight.current.has(`${language}\u0000${text}`)) return;
+    dynamicQueue.current.add(text);
+    if (dynamicTimer.current === null) dynamicTimer.current = window.setTimeout(() => { void flushDynamicRef.current(); }, 25);
+  }, [language, dict]);
+
+  const value = useMemo(() => ({ language, setLanguage, t, translating, requestTranslation }), [language, setLanguage, t, translating, requestTranslation]);
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
@@ -101,4 +179,13 @@ export function useLanguage() {
   const ctx = useContext(LanguageContext);
   if (!ctx) throw new Error("useLanguage must be used within a LanguageProvider");
   return ctx;
+}
+
+/** Translate literal JSX copy while keeping the surrounding markup semantic. */
+export function LocalizedText({ text }: { text: string }) {
+  const { t, language, requestTranslation } = useLanguage();
+  useEffect(() => {
+    if (language !== "en" && !UI_STRINGS.includes(text)) requestTranslation(text);
+  }, [language, requestTranslation, text]);
+  return t(text);
 }

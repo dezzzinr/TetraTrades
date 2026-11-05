@@ -1,11 +1,11 @@
 "use client";
 
+import { LocalizedText, useLanguage } from "@/components/i18n-provider";
 import { useEffect, useState } from "react";
 import { BadgeCheck, Check, CircleHelp, KeyRound, Lock, Moon, Sun, UploadCloud, UserRound } from "lucide-react";
 import { COUNTRIES, currencyForCountry } from "@/lib/countries";
 import { GENDERS, genderLabel } from "@/lib/profile";
 import { LANGUAGES, type LanguageCode } from "@/lib/i18n";
-import { useLanguage } from "@/components/i18n-provider";
 import { useConfirm } from "@/components/confirm-provider";
 import { useTheme } from "@/components/theme-provider";
 
@@ -29,7 +29,8 @@ type Props = {
 };
 
 export default function ProfilePage({ onRequireAuth, onProfileUpdated, notify }: Props) {
-  const { setLanguage } = useLanguage();
+  const { t: translateUI } = useLanguage();
+  const { setLanguage, t} = useLanguage();
   const { theme, setTheme } = useTheme();
   const confirm = useConfirm();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -223,17 +224,17 @@ export default function ProfilePage({ onRequireAuth, onProfileUpdated, notify }:
     }
   };
 
-  if (loading) return <div className="page-heading"><div><div className="eyebrow">YOUR WORKSPACE</div><h1>Profile</h1><p>Loading your profile...</p></div></div>;
+  if (loading) return <div className="page-heading"><div><div className="eyebrow">{<LocalizedText text={"YOUR WORKSPACE"}/>}</div><h1>{<LocalizedText text={"Profile"}/>}</h1><p>{<LocalizedText text={"Loading your profile..."}/>}</p></div></div>;
 
   if (!profile || profile.isDemo) {
     return (
       <>
-        <div className="page-heading"><div><div className="eyebrow">YOUR WORKSPACE</div><h1>Profile</h1><p>Manage your personal information, security, and currency preferences.</p></div></div>
+        <div className="page-heading"><div><div className="eyebrow">{<LocalizedText text={"YOUR WORKSPACE"}/>}</div><h1>{<LocalizedText text={"Profile"}/>}</h1><p>{<LocalizedText text={"Manage your personal information, security, and currency preferences."}/>}</p></div></div>
         <div className="panel"><div className="empty-state">
           <span className="empty-icon"><UserRound size={27} /></span>
-          <h3>Create an account to set up your profile</h3>
-          <p>You&apos;re exploring Tetratrades in demo mode. Create a free account to save your profile details, change your password, and set your preferred currency.</p>
-          <button className="primary-btn" style={{ marginTop: 14 }} onClick={() => onRequireAuth("register")}>Create an account</button>
+          <h3>{<LocalizedText text={"Create an account to set up your profile"}/>}</h3>
+          <p>{<LocalizedText text={"You're exploring Tetratrades in demo mode. Create a free account to save your profile details, change your password, and set your preferred currency."}/>}</p>
+          <button className="primary-btn" style={{ marginTop: 14 }} onClick={() => onRequireAuth("register")}>{<LocalizedText text={"Create an account"}/>}</button>
         </div></div>
       </>
     );
@@ -244,73 +245,73 @@ export default function ProfilePage({ onRequireAuth, onProfileUpdated, notify }:
 
   return (
     <>
-      <div className="page-heading"><div><div className="eyebrow">YOUR WORKSPACE</div><h1>Profile</h1><p>Manage your personal information, security, and currency preferences.</p></div></div>
+      <div className="page-heading"><div><div className="eyebrow">{<LocalizedText text={"YOUR WORKSPACE"}/>}</div><h1>{<LocalizedText text={"Profile"}/>}</h1><p>{<LocalizedText text={"Manage your personal information, security, and currency preferences."}/>}</p></div></div>
 
       <div className="panel profile-header-card">
-        <span className="profile-avatar-lg">{profile.profilePhoto ? <img src={profile.profilePhoto} alt="Your profile" /> : initials}</span>
+        <span className="profile-avatar-lg">{profile.profilePhoto ? <img src={profile.profilePhoto} alt={translateUI("Your profile")} /> : initials}</span>
         <div className="profile-header-info">
           <h2>{profile.name}</h2>
           <p>{profile.email}{profile.username ? ` · @${profile.username}` : ""}</p>
           <div className="profile-header-pills">
-            <span className="status-pill"><span />Member since {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
-            {profile.currency && <span className="status-pill approved">Displaying in {profile.currency}</span>}
+            <span className="status-pill"><span />{<LocalizedText text={"Member since"}/>} {new Date(profile.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>
+            {profile.currency && <span className="status-pill approved">{<LocalizedText text={"Displaying in"}/>} {profile.currency}</span>}
           </div>
         </div>
         <div className="avatar-upload-actions">
           <label className="outline-btn" style={{ cursor: "pointer" }}>
-            <UploadCloud size={15} /> {photoBusy ? "Uploading..." : profile.profilePhoto ? "Replace photo" : "Upload photo"}
+            <UploadCloud size={15} /> {photoBusy ? translateUI("Uploading...") : profile.profilePhoto ? translateUI("Replace photo") : translateUI("Upload photo")}
             <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={photoBusy} onChange={(e) => handlePhotoFile(e.target.files?.[0] ?? null)} hidden />
           </label>
-          {profile.profilePhoto && <button className="outline-btn" disabled={photoBusy} onClick={removePhoto}>Remove photo</button>}
+          {profile.profilePhoto && <button className="outline-btn" disabled={photoBusy} onClick={removePhoto}>{<LocalizedText text={"Remove photo"}/>}</button>}
         </div>
       </div>
 
       <div className="profile-grid">
         <div className="panel" style={{ gridColumn: "1 / -1" }}>
-          <h3>Personal information</h3><p className="panel-subtitle">Keep your details up to date. Required fields are marked *.</p>
+          <h3>{<LocalizedText text={"Personal information"}/>}</h3><p className="panel-subtitle">{<LocalizedText text={"Keep your details up to date. Required fields are marked *."}/>}</p>
           <form onSubmit={saveInfo}>
             <div className="form-grid">
-              <div className="form-field"><label className="input-label">Full name *</label><input className="text-input" value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} /></div>
-              <div className="form-field"><label className="input-label">Username *</label><input className="text-input" value={form.username ?? ""} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} maxLength={24} /></div>
-              <div className="form-field"><label className="input-label">Email address *</label><input className="text-input" type="email" value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
-              <div className="form-field"><label className="input-label">Phone number *</label><input className="text-input" value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} required /></div>
-              <div className="form-field"><label className="input-label">Date of birth *</label><input className="text-input" type="date" value={form.dateOfBirth ?? ""} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} required /></div>
-              <div className="form-field"><label className="input-label">Gender</label><div className="select-wrap"><select value={form.gender ?? ""} onChange={(e) => setForm({ ...form, gender: e.target.value })}><option value="">Prefer not to specify</option>{GENDERS.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}</select></div></div>
-              <div className="form-field"><label className="input-label">Country *</label><div className="select-wrap"><select value={form.country ?? ""} onChange={(e) => setForm({ ...form, country: e.target.value })} required><option value="">Select country</option>{COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></div></div>
-              <div className="form-field"><label className="input-label">State / Province</label><input className="text-input" value={form.state ?? ""} onChange={(e) => setForm({ ...form, state: e.target.value })} /></div>
-              <div className="form-field"><label className="input-label">City</label><input className="text-input" value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
-              <div className="form-field field-full"><label className="input-label">Residential address</label><input className="text-input" value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"Full name *"}/>}</label><input className="text-input" value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} required minLength={2} /></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"Username *"}/>}</label><input className="text-input" value={form.username ?? ""} onChange={(e) => setForm({ ...form, username: e.target.value })} required minLength={3} maxLength={24} /></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"Email address *"}/>}</label><input className="text-input" type="email" value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"Phone number *"}/>}</label><input className="text-input" value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} required /></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"Date of birth *"}/>}</label><input className="text-input" type="date" value={form.dateOfBirth ?? ""} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} required /></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"Gender"}/>}</label><div className="select-wrap"><select value={form.gender ?? ""} onChange={(e) => setForm({ ...form, gender: e.target.value })}><option value="">{<LocalizedText text={"Prefer not to specify"}/>}</option>{GENDERS.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}</select></div></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"Country *"}/>}</label><div className="select-wrap"><select value={form.country ?? ""} onChange={(e) => setForm({ ...form, country: e.target.value })} required><option value="">{<LocalizedText text={"Select country"}/>}</option>{COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></div></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"State / Province"}/>}</label><input className="text-input" value={form.state ?? ""} onChange={(e) => setForm({ ...form, state: e.target.value })} /></div>
+              <div className="form-field"><label className="input-label">{<LocalizedText text={"City"}/>}</label><input className="text-input" value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+              <div className="form-field field-full"><label className="input-label">{<LocalizedText text={"Residential address"}/>}</label><input className="text-input" value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
             </div>
-            {selectedCountry && <p className="form-hint">Country of {selectedCountry.name} — local currency {currencyForCountry(selectedCountry.code)}. Your display currency is set separately below.</p>}
-            <div className="profile-save-row"><button className="primary-btn" disabled={savingInfo}>{savingInfo ? "Saving..." : "Save changes"}</button></div>
+            {selectedCountry && <p className="form-hint">{<LocalizedText text={"Country of"}/>} {selectedCountry.name} {<LocalizedText text={"— local currency"}/>} {currencyForCountry(selectedCountry.code)}{<LocalizedText text={". Your display currency is set separately below."}/>}</p>}
+            <div className="profile-save-row"><button className="primary-btn" disabled={savingInfo}>{savingInfo ? translateUI("Saving...") : translateUI("Save changes")}</button></div>
           </form>
         </div>
 
         <div className="panel">
-          <h3>Display currency</h3><p className="panel-subtitle">Balances, prices, and profit/loss are converted for display using a live exchange rate. Your real ledger always stays in USD.</p>
+          <h3>{<LocalizedText text={"Display currency"}/>}</h3><p className="panel-subtitle">{<LocalizedText text={"Balances, prices, and profit/loss are converted for display using a live exchange rate. Your real ledger always stays in USD."}/>}</p>
           <div className="select-wrap"><select data-testid="currency-select" value={form.currency ?? "USD"} disabled={savingCurrency} onChange={(e) => { setForm({ ...form, currency: e.target.value }); void saveCurrency(e.target.value); }}>{CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
-          {fx && <p className="form-hint">1 USD ≈ {fx.rate.toLocaleString("en-US", { maximumFractionDigits: 4 })} {profile.currency} {fx.status !== "live" && "(rate may be slightly delayed)"}</p>}
+          {fx && <p className="form-hint">{<LocalizedText text={"1 USD ≈"}/>} {fx.rate.toLocaleString("en-US", { maximumFractionDigits: 4 })} {profile.currency} {fx.status !== "live" && translateUI("(rate may be slightly delayed)")}</p>}
         </div>
 
         <div className="panel">
-          <h3>Display language</h3><p className="panel-subtitle">Translates the app&apos;s menus, buttons, and headings. Market data and numbers are unaffected.</p>
+          <h3>{<LocalizedText text={"Display language"}/>}</h3><p className="panel-subtitle">{<LocalizedText text={"Translates interface text. User-entered content and market data stay in their original form."}/>}</p>
           <div className="select-wrap"><select data-testid="language-select" value={form.language ?? "en"} disabled={savingLanguage} onChange={(e) => { setForm({ ...form, language: e.target.value }); void saveLanguage(e.target.value); }}>{LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.flag} {l.nativeLabel}</option>)}</select></div>
         </div>
 
         <div className="panel">
-          <h3>Appearance</h3><p className="panel-subtitle">Choose how Tetratrades looks on this device. Saved locally, so other devices keep their own preference.</p>
+          <h3>{<LocalizedText text={"Appearance"}/>}</h3><p className="panel-subtitle">{<LocalizedText text={"Choose how Tetratrades looks on this device. Saved locally, so other devices keep their own preference."}/>}</p>
           <div className="theme-row" style={{ padding: 0 }}>
-            <div className="theme-row-label"><strong>Theme</strong><span>{theme === "dark" ? "Dark mode is on" : "Light mode is on"}</span></div>
+            <div className="theme-row-label"><strong>{<LocalizedText text={"Theme"}/>}</strong><span>{theme === "dark" ? translateUI("Dark mode is on") : translateUI("Light mode is on")}</span></div>
             <div className="theme-switch" data-testid="theme-switch">
-              <button type="button" className={theme === "light" ? "active" : ""} aria-label="Light mode" title="Light mode" onClick={() => setTheme("light")}><Sun size={16}/></button>
-              <button type="button" className={theme === "dark" ? "active" : ""} aria-label="Dark mode" title="Dark mode" onClick={() => setTheme("dark")}><Moon size={16}/></button>
+              <button type="button" className={theme === "light" ? "active" : ""} aria-label={translateUI("Light mode")} title={translateUI("Light mode")} onClick={() => setTheme("light")}><Sun size={16}/></button>
+              <button type="button" className={theme === "dark" ? "active" : ""} aria-label={translateUI("Dark mode")} title={translateUI("Dark mode")} onClick={() => setTheme("dark")}><Moon size={16}/></button>
             </div>
           </div>
         </div>
 
         <div className="panel">
-          <h3>Notifications</h3>
-          <p className="panel-subtitle">Notable account and trading activity always appears in your notification bell. Turn this on to also get it by email.</p>
+          <h3>{<LocalizedText text={"Notifications"}/>}</h3>
+          <p className="panel-subtitle">{<LocalizedText text={"Notable account and trading activity always appears in your notification bell. Turn this on to also get it by email."}/>}</p>
           <label className="toggle-row" style={{ display: "flex", alignItems: "center", gap: 10, cursor: savingEmailNotifications ? "default" : "pointer" }}>
             <input
               type="checkbox"
@@ -319,12 +320,12 @@ export default function ProfilePage({ onRequireAuth, onProfileUpdated, notify }:
               disabled={savingEmailNotifications}
               onChange={(e) => { setForm({ ...form, emailNotifications: e.target.checked }); void saveEmailNotifications(e.target.checked); }}
             />
-            <span>Email me about account activity (sign-ins, trades, deposits/withdrawals, subscriptions, and more)</span>
+            <span>{<LocalizedText text={"Email me about account activity (sign-ins, trades, deposits/withdrawals, subscriptions, and more)"}/>}</span>
           </label>
         </div>
 
         {!profile.isDemo && <div className="panel">
-          <h3>Your referral code</h3><p className="panel-subtitle">Share this with a friend. When they sign up with it, you both get a $25 trading bonus.</p>
+          <h3>{<LocalizedText text={"Your referral code"}/>}</h3><p className="panel-subtitle">{<LocalizedText text={"Share this with a friend. When they sign up with it, you both get a $25 trading bonus."}/>}</p>
           {profile.referralCode ? <>
             <div className="referral-code-box" style={{ marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
               <span style={{ letterSpacing: 1, fontWeight: 800 }}>{profile.referralCode}</span>
@@ -332,50 +333,50 @@ export default function ProfilePage({ onRequireAuth, onProfileUpdated, notify }:
                 type="button"
                 className="outline-btn small"
                 onClick={() => { navigator.clipboard?.writeText(profile.referralCode ?? ""); setReferralCopied(true); setTimeout(() => setReferralCopied(false), 1800); }}
-              >{referralCopied ? "Copied!" : "Copy"}</button>
+              >{referralCopied ? translateUI("Copied!") : translateUI("Copy")}</button>
             </div>
-            <div className="profile-readonly-row"><span>Friends referred</span><span>{referralCount}</span></div>
-          </> : <p className="form-hint">Your code is being generated - refresh this page in a moment.</p>}
+            <div className="profile-readonly-row"><span>{<LocalizedText text={"Friends referred"}/>}</span><span>{referralCount}</span></div>
+          </> : <p className="form-hint">{<LocalizedText text={"Your code is being generated - refresh this page in a moment."}/>}</p>}
         </div>}
 
         <div className="panel">
-          <h3>Agreements</h3><p className="panel-subtitle">Read-only account record.</p>
-          <div className="profile-readonly-row"><span>Terms &amp; Conditions</span><span>{profile.termsAcceptedAt ? <><Check size={13} style={{ verticalAlign: -2 }} /> Accepted {new Date(profile.termsAcceptedAt).toLocaleDateString()}</> : "Not yet accepted"}</span></div>
-          <div className="profile-readonly-row"><span>Privacy Policy</span><span>{profile.privacyAcceptedAt ? <><Check size={13} style={{ verticalAlign: -2 }} /> Accepted {new Date(profile.privacyAcceptedAt).toLocaleDateString()}</> : "Not yet accepted"}</span></div>
+          <h3>{<LocalizedText text={"Agreements"}/>}</h3><p className="panel-subtitle">{<LocalizedText text={"Read-only account record."}/>}</p>
+          <div className="profile-readonly-row"><span>{<LocalizedText text={"Terms & Conditions"}/>}</span><span>{profile.termsAcceptedAt ? <><Check size={13} style={{ verticalAlign: -2 }} /> {<LocalizedText text={"Accepted"}/>} {new Date(profile.termsAcceptedAt).toLocaleDateString()}</> : translateUI("Not yet accepted")}</span></div>
+          <div className="profile-readonly-row"><span>{<LocalizedText text={"Privacy Policy"}/>}</span><span>{profile.privacyAcceptedAt ? <><Check size={13} style={{ verticalAlign: -2 }} /> {<LocalizedText text={"Accepted"}/>} {new Date(profile.privacyAcceptedAt).toLocaleDateString()}</> : translateUI("Not yet accepted")}</span></div>
         </div>
 
         <div className="panel">
-          <h3><Lock size={14} style={{ verticalAlign: -2 }} /> Change password</h3><p className="panel-subtitle">Choose a strong password you don&apos;t use elsewhere.</p>
+          <h3><Lock size={14} style={{ verticalAlign: -2 }} /> {<LocalizedText text={"Change password"}/>}</h3><p className="panel-subtitle">{<LocalizedText text={"Choose a strong password you don't use elsewhere."}/>}</p>
           <form onSubmit={changePassword}>
-            <label className="input-label">Current password</label>
+            <label className="input-label">{<LocalizedText text={"Current password"}/>}</label>
             <input className="text-input" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
-            <label className="input-label">New password</label>
+            <label className="input-label">{<LocalizedText text={"New password"}/>}</label>
             <input className="text-input" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
-            <label className="input-label">Confirm new password</label>
+            <label className="input-label">{<LocalizedText text={"Confirm new password"}/>}</label>
             <input className="text-input" type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} required minLength={8} />
-            <div className="profile-save-row"><button className="primary-btn" disabled={passwordSaving}>{passwordSaving ? "Saving..." : "Update password"}</button></div>
+            <div className="profile-save-row"><button className="primary-btn" disabled={passwordSaving}>{passwordSaving ? translateUI("Saving...") : translateUI("Update password")}</button></div>
           </form>
         </div>
 
         <div className="panel">
-          <h3><CircleHelp size={14} style={{ verticalAlign: -2 }} /> Security question</h3><p className="panel-subtitle">Used to reset your password if you forget it.</p>
+          <h3><CircleHelp size={14} style={{ verticalAlign: -2 }} /> {<LocalizedText text={"Security question"}/>}</h3><p className="panel-subtitle">{<LocalizedText text={"Used to reset your password if you forget it."}/>}</p>
           {!securityEditing ? (
             <>
-              <div className="profile-readonly-row"><span>Status</span><span>{profile.hasSecurityQuestion ? <><BadgeCheck size={13} style={{ verticalAlign: -2 }} /> Set</> : "Not set"}</span></div>
-              {profile.hasSecurityQuestion && <div className="profile-readonly-row"><span>Question</span><span>{profile.securityQuestion}</span></div>}
-              <div className="profile-save-row"><button className="outline-btn" onClick={() => setSecurityEditing(true)}><KeyRound size={15} /> {profile.hasSecurityQuestion ? "Update" : "Set up"} security question</button></div>
+              <div className="profile-readonly-row"><span>{<LocalizedText text={"Status"}/>}</span><span>{profile.hasSecurityQuestion ? <><BadgeCheck size={13} style={{ verticalAlign: -2 }} /> {<LocalizedText text={"Set"}/>}</> : translateUI("Not set")}</span></div>
+              {profile.hasSecurityQuestion && <div className="profile-readonly-row"><span>{<LocalizedText text={"Question"}/>}</span><span>{profile.securityQuestion}</span></div>}
+              <div className="profile-save-row"><button className="outline-btn" onClick={() => setSecurityEditing(true)}><KeyRound size={15} /> {profile.hasSecurityQuestion ? translateUI("Update") : translateUI("Set up")} {<LocalizedText text={"security question"}/>}</button></div>
             </>
           ) : (
             <form onSubmit={saveSecurity}>
-              <label className="input-label">Current password</label>
+              <label className="input-label">{<LocalizedText text={"Current password"}/>}</label>
               <input className="text-input" type="password" value={secCurrentPassword} onChange={(e) => setSecCurrentPassword(e.target.value)} required />
-              <label className="input-label">Security question</label>
-              <input className="text-input" placeholder="e.g. favorite teacher's name" value={secQuestion} onChange={(e) => setSecQuestion(e.target.value)} required />
-              <label className="input-label">Answer</label>
+              <label className="input-label">{<LocalizedText text={"Security question"}/>}</label>
+              <input className="text-input" placeholder={translateUI("e.g. favorite teacher's name")} value={secQuestion} onChange={(e) => setSecQuestion(e.target.value)} required />
+              <label className="input-label">{<LocalizedText text={"Answer"}/>}</label>
               <input className="text-input" value={secAnswer} onChange={(e) => setSecAnswer(e.target.value)} required />
               <div className="profile-save-row">
-                <button type="button" className="outline-btn" onClick={() => setSecurityEditing(false)}>Cancel</button>
-                <button className="primary-btn" disabled={securitySaving}>{securitySaving ? "Saving..." : "Save"}</button>
+                <button type="button" className="outline-btn" onClick={() => setSecurityEditing(false)}>{<LocalizedText text={"Cancel"}/>}</button>
+                <button className="primary-btn" disabled={securitySaving}>{securitySaving ? translateUI("Saving...") : translateUI("Save")}</button>
               </div>
             </form>
           )}

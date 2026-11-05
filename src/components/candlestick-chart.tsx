@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedText } from "@/components/i18n-provider";
 import { useState, type MouseEvent } from "react";
 import { Activity } from "lucide-react";
 import { type Candle, type ChartPeriod } from "@/lib/market";
@@ -27,10 +28,10 @@ export default function CandlestickChart({ candles, period, status, label, curre
   const compactMoney = (value: number) => formatCompactMoney(value, currency, rate);
   const axisPrice = (value: number) => (value >= 1000 ? formatCompactMoney(value, currency, rate) : marketPrice(value));
   if (status === "loading") {
-    return <div className="live-chart-state chart-loading"><div className="chart-skeleton"/><span>Loading candle data…</span></div>;
+    return <div className="live-chart-state chart-loading"><div className="chart-skeleton"/><span>{<LocalizedText text={"Loading candle data…"}/>}</span></div>;
   }
   if (status === "error" || candles.length < 2) {
-    return <div className="live-chart-state"><span className="chart-empty-icon"><Activity size={20}/></span><strong>Chart unavailable</strong><span>Candle data could not be loaded right now.</span></div>;
+    return <div className="live-chart-state"><span className="chart-empty-icon"><Activity size={20}/></span><strong>{<LocalizedText text={"Chart unavailable"}/>}</strong><span>{<LocalizedText text={"Candle data could not be loaded right now."}/>}</span></div>;
   }
 
   const highs = candles.map((c) => c.high);
@@ -93,8 +94,8 @@ export default function CandlestickChart({ candles, period, status, label, curre
       </svg>
       {active && activeX !== null && <div className="candle-chart-tooltip" style={{ left: `${Math.min(78, Math.max(18, activeX / W * 100))}%` }}>
         <strong>{marketPrice(active.close)}</strong>
-        <span>O {marketPrice(active.open)} · H {marketPrice(active.high)} · L {marketPrice(active.low)}</span>
-        <span>Vol ≈ {compactMoney(active.volume)}</span>
+        <span>{<LocalizedText text={"O"}/>} {marketPrice(active.open)} {<LocalizedText text={"· H"}/>} {marketPrice(active.high)} {<LocalizedText text={"· L"}/>} {marketPrice(active.low)}</span>
+        <span>{<LocalizedText text={"Vol ≈"}/>} {compactMoney(active.volume)}</span>
         <span>{timeLabel(active.timestamp, period)}</span>
       </div>}
       <div className="candle-chart-dates">{dateTicks.map((candle, index) => <span key={index}>{timeLabel(candle.timestamp, period)}</span>)}</div>

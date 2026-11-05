@@ -11,6 +11,7 @@ type Props = {
 };
 
 export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props) {
+  const { t: translateUI } = useLanguage();
   const { t } = useLanguage();
   const confirm = useConfirm();
   const [step, setStep] = useState<"identify" | "answer" | "done" | "emailSent">("identify");
@@ -80,14 +81,14 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
   return (
     <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="auth-modal">
-        <button className="modal-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
+        <button className="modal-close" onClick={onClose} aria-label={translateUI("Close")}><X size={20} /></button>
         <div className="modal-brand"><div className="brand-icon"><CircleHelp size={20} strokeWidth={3} /></div>{t("Reset password")}</div>
         {step === "identify" && <>
           <h2>{t("Forgot your password?")}</h2>
           <p>{t("Enter your email or username and we'll ask your security question.")}</p>
           <form onSubmit={lookUp}>
             <label className="input-label">{t("Email or username")}</label>
-            <input className="text-input" placeholder="you@example.com or username" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
+            <input className="text-input" placeholder={translateUI("you@example.com or username")} value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
             {error && <p className="form-error-text">{error}</p>}
             <button className="primary-btn full-btn" disabled={submitting}>{submitting ? t("Looking up...") : t("Continue")}<ArrowRight size={17} /></button>
           </form>
@@ -105,7 +106,7 @@ export default function ForgotPasswordModal({ onClose, onSwitchToLogin }: Props)
             <label className="input-label">{t("Your answer")}</label>
             <input className="text-input" value={answer} onChange={(e) => setAnswer(e.target.value)} required />
             <label className="input-label">{t("New password")}</label>
-            <input className="text-input" type="password" placeholder="At least 8 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
+            <input className="text-input" type="password" placeholder={translateUI("At least 8 characters")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
             <label className="input-label">{t("Confirm new password")}</label>
             <input className="text-input" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} />
             {error && <p className="form-error-text">{error}</p>}

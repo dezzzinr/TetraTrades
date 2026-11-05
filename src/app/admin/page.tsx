@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedText, useLanguage } from "@/components/i18n-provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Activity, AlertTriangle, ArrowDownLeft, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUpRight, Bell, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Copy as CopyIcon, CreditCard, History, LayoutDashboard, LockKeyhole, Menu, Moon, Pencil, Plus, RefreshCw, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Sun, Target, Trash2, TrendingUp, UserPlus, UserRound, UsersRound, Wallet, X } from "lucide-react";
@@ -79,7 +80,7 @@ const tabTitles: Record<Tab, { title: string; description: string }> = {
 function StoredUsdHint({ typed, money }: { typed: string; money: (n: number) => string }) {
   const value = Number(typed);
   if (!Number.isFinite(value) || value <= 0) return null;
-  return <p className="input-hint">Users see ≈ {money(value)}</p>;
+  return <p className="input-hint">{<LocalizedText text={"Users see ≈"}/>} {money(value)}</p>;
 }
 
 // Currencies an admin can enter a funding amount in: the same list users can
@@ -120,26 +121,26 @@ function FundingCurrency({ id, value, onChange, amounts, rates, status }: {
   const stale = status === "stale" ? " · rate may be slightly delayed" : "";
   return (
     <div>
-      <label className="input-label" htmlFor={id}>Amount currency</label>
+      <label className="input-label" htmlFor={id}>{<LocalizedText text={"Amount currency"}/>}</label>
       <div className="select-wrap">
         <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
           {FUNDING_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
       {value === "USD" ? (
-        <p className="input-hint">Stored as entered — the ledger is USD.</p>
+        <p className="input-hint">{<LocalizedText text={"Stored as entered — the ledger is USD."}/>}</p>
       ) : !hasRate ? (
         <p className="input-hint" style={{ color: "var(--tint-red-fg)" }}>
-          No exchange rate available for {value} right now. Enter the amount in USD instead.
+          {<LocalizedText text={"No exchange rate available for"}/>} {value} {<LocalizedText text={"right now. Enter the amount in USD instead."}/>}
         </p>
       ) : (
         <>
           {previews.map((p, i) => (
             <p className="input-hint" key={i}>
-              Will store <strong>{formatMoney(p.usd, "USD", 1)}</strong>{showLabels && p.label ? ` for ${p.label}` : ""}
+              {<LocalizedText text={"Will store"}/>} <strong>{formatMoney(p.usd, "USD", 1)}</strong>{showLabels && p.label ? ` for ${p.label}` : ""}
             </p>
           ))}
-          <p className="input-hint">1 USD = {formatInCurrency(rate as number, value, 4)}{stale}</p>
+          <p className="input-hint">{<LocalizedText text={"1 USD ="}/>} {formatInCurrency(rate as number, value, 4)}{stale}</p>
         </>
       )}
     </div>
@@ -151,6 +152,8 @@ export default function AdminPage() {
 }
 
 function AdminPageInner() {
+  const { t: translateUI } = useLanguage();
+  const { t } = useLanguage();
   const [renderNow, setRenderNow] = useState<number | null>(null);
   useEffect(() => {
     const timer = window.setTimeout(() => setRenderNow(Date.now()), 0);
@@ -186,7 +189,7 @@ function AdminPageInner() {
   const [tab, setTab] = useState<Tab>("overview");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
-  const notify = (text: string, error = false) => { setToast({ text, error }); setTimeout(() => setToast(null), 4500); };
+  const notify = (text: string, error = false) => { setToast({ text: translateUI(text), error }); setTimeout(() => setToast(null), 4500); };
   const go = (t: Tab) => { setTab(t); setMobileMenu(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   // --- Notifications: every notable event across every user account (see
@@ -876,13 +879,13 @@ function AdminPageInner() {
     } catch (error) { notify(error instanceof Error ? error.message : "Something went wrong", true); } finally { setPlanBusyId(null); }
   };
 
-  if (authState === "loading") return <div className="admin-shell admin-center"><Clock3 size={22}/><p>Loading admin panel…</p></div>;
+  if (authState === "loading") return <div className="admin-shell admin-center"><Clock3 size={22}/><p>{<LocalizedText text={"Loading admin panel…"}/>}</p></div>;
   if (authState === "denied") return <div className="admin-shell admin-center">
     <div className="panel admin-denied">
       <LockKeyhole size={28}/>
-      <h2>Admins only</h2>
-      <p>You need an admin account to view this page. Sign in with an admin account on the main app, then come back here.</p>
-      <Link className="primary-btn" href="/"><ArrowLeft size={16}/> Back to Tetratrades</Link>
+      <h2>{<LocalizedText text={"Admins only"}/>}</h2>
+      <p>{<LocalizedText text={"You need an admin account to view this page. Sign in with an admin account on the main app, then come back here."}/>}</p>
+      <Link className="primary-btn" href="/"><ArrowLeft size={16}/> {<LocalizedText text={"Back to Tetratrades"}/>}</Link>
     </div>
   </div>;
 
@@ -891,55 +894,55 @@ function AdminPageInner() {
   return <div className="admin-shell">
     {mobileMenu && <div className="mobile-overlay" onClick={() => setMobileMenu(false)}/>}
     <aside className={`sidebar ${mobileMenu ? "sidebar-open" : ""}`}>
-      <div className="brand" onClick={() => go("overview")}><div className="brand-icon"><Activity size={23} strokeWidth={3}/></div><span>Tetra<span>Trades</span></span><button className="mobile-close" onClick={(e) => { e.stopPropagation(); setMobileMenu(false); }}><X size={19}/></button></div>
+      <div className="brand" onClick={() => go("overview")}><div className="brand-icon"><Activity size={23} strokeWidth={3}/></div><span>{<LocalizedText text={"Tetra"}/>}<span>{<LocalizedText text={"Trades"}/>}</span></span><button className="mobile-close" onClick={(e) => { e.stopPropagation(); setMobileMenu(false); }}><X size={19}/></button></div>
       <div className="sidebar-body">{navGroups.map(group => <div className="nav-group" key={group.label}><div className="nav-label">{group.label}</div>{group.items.map(item => { const Icon = item.icon; return <button key={item.name} className={`nav-item ${tab === item.name ? "selected" : ""}`} onClick={() => go(item.name)}><Icon size={19} strokeWidth={tab === item.name ? 2.25 : 1.8}/><span>{item.label}</span></button>; })}</div>)}</div>
       <div className="sidebar-bottom">
-        <div className="help-card"><span className="help-bubble"><ShieldCheck size={18}/></span><strong>{admin?.name}</strong><p>{admin?.email ?? "Signed in as admin"}</p><Link href="/" style={{ display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>Exit to app <ArrowRight size={14}/></Link></div>
-        <div className="sidebar-footer"><ShieldCheck size={15}/> Tetratrades admin panel</div>
+        <div className="help-card"><span className="help-bubble"><ShieldCheck size={18}/></span><strong>{admin?.name}</strong><p>{admin?.email ?? translateUI("Signed in as admin")}</p><Link href="/" style={{ display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>{<LocalizedText text={"Exit to app"}/>} <ArrowRight size={14}/></Link></div>
+        <div className="sidebar-footer"><ShieldCheck size={15}/> {<LocalizedText text={"Tetratrades admin panel"}/>}</div>
       </div>
     </aside>
     <div className="main-shell">
       <header className="topbar">
-        <div className="topbar-left"><button className="icon-btn menu-btn" onClick={() => setMobileMenu(true)} aria-label="Open menu"><Menu size={22}/></button><div className="breadcrumb">Admin <ChevronRight size={15}/> <strong>{active.title}</strong></div></div>
+        <div className="topbar-left"><button className="icon-btn menu-btn" onClick={() => setMobileMenu(true)} aria-label={translateUI("Open menu")}><Menu size={22}/></button><div className="breadcrumb">{<LocalizedText text={"Admin"}/>} <ChevronRight size={15}/> <strong>{active.title}</strong></div></div>
         <div className="topbar-right">
           <div className="notification-wrap">
-            <button className="icon-btn notif-btn" aria-label="Notifications" onClick={toggleNotifications}><Bell size={20}/>{unreadNotifications > 0 && <i/>}</button>
+            <button className="icon-btn notif-btn" aria-label={translateUI("Notifications")} onClick={toggleNotifications}><Bell size={20}/>{unreadNotifications > 0 && <i/>}</button>
             {notificationsOpen && <div className="popover notification-popover">
-              <div className="popover-title">Notifications {unreadNotifications > 0 && <span>{unreadNotifications} new</span>}</div>
-              {recentNotifications.length === 0 ? <div className="notification-empty"><Bell size={18}/><p>No notifications yet</p></div> : recentNotifications.map(n => { const { Icon, color } = notificationVisual(n.type); return <div className={`notification-item ${n.readAt ? "" : "unread"}`} key={n.id}>
+              <div className="popover-title">{<LocalizedText text={"Notifications"}/>} {unreadNotifications > 0 && <span>{unreadNotifications} {<LocalizedText text={"new"}/>}</span>}</div>
+              {recentNotifications.length === 0 ? <div className="notification-empty"><Bell size={18}/><p>{<LocalizedText text={"No notifications yet"}/>}</p></div> : recentNotifications.map(n => { const { Icon, color } = notificationVisual(n.type); return <div className={`notification-item ${n.readAt ? "" : "unread"}`} key={n.id}>
                 <span className={`notification-icon ${color}`}><Icon size={16}/></span>
-                <div><strong>{n.title}</strong><p>{n.message}</p><small>{timeAgo(n.createdAt)}</small>{n.aboutUserId && <button className="notification-view-account" onClick={() => viewAccountFromNotification(n.aboutUserId!)}><UserRound size={11}/> View account</button>}</div>
+                <div><strong><LocalizedText text={n.title}/></strong><p><LocalizedText text={n.message}/></p><small>{timeAgo(n.createdAt)}</small>{n.aboutUserId && <button className="notification-view-account" onClick={() => viewAccountFromNotification(n.aboutUserId!)}><UserRound size={11}/> {<LocalizedText text={"View account"}/>}</button>}</div>
               </div>; })}
-              <button className="notification-see-all" onClick={() => { setNotificationsOpen(false); setTab("notifications"); }}>See all notifications <ArrowRight size={13}/></button>
+              <button className="notification-see-all" onClick={() => { setNotificationsOpen(false); setTab("notifications"); }}>{<LocalizedText text={"See all notifications"}/>} <ArrowRight size={13}/></button>
             </div>}
           </div>
-          <button className="theme-toggle" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={toggleTheme}>{theme === "dark" ? <Sun size={19}/> : <Moon size={19}/>}</button>{currency !== "USD" && <span className="admin-whoami" title="Change this from your Profile page in the main app"><Wallet size={14}/> Amounts in {currency}</span>}<span className="admin-whoami"><ShieldCheck size={15}/> {admin?.name} · Admin</span><Link href="/" className="outline-btn small"><ArrowLeft size={14}/> Exit to app</Link></div>
+          <button className="theme-toggle" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={toggleTheme}>{theme === "dark" ? <Sun size={19}/> : <Moon size={19}/>}</button>{currency !== "USD" && <span className="admin-whoami" title={translateUI("Change this from your Profile page in the main app")}><Wallet size={14}/> {<LocalizedText text={"Amounts in"}/>} {currency}</span>}<span className="admin-whoami"><ShieldCheck size={15}/> {admin?.name} {<LocalizedText text={"· Admin"}/>}</span><Link href="/" className="outline-btn small"><ArrowLeft size={14}/> {<LocalizedText text={"Exit to app"}/>}</Link></div>
       </header>
       <main className="admin-content">
-        <div className="page-heading"><div><div className="eyebrow">ADMIN PANEL</div><h1>{active.title}</h1><p>{active.description}</p></div></div>
+        <div className="page-heading"><div><div className="eyebrow">{<LocalizedText text={"ADMIN PANEL"}/>}</div><h1>{active.title}</h1><p>{active.description}</p></div></div>
 
         {tab === "overview" && <>
-          {overviewLoading && !overview ? <div className="no-results">Loading overview…</div> : overview && <>
+          {overviewLoading && !overview ? <div className="no-results">{<LocalizedText text={"Loading overview…"}/>}</div> : overview && <>
             <div className="stats-grid five">
-              <div className="stat-card"><span className="stat-icon blue"><UsersRound size={19}/></span><span className="stat-label">Total users</span><strong className="stat-value">{overview.totalUsers}</strong><div className="stat-foot"><span>{overview.restrictedAccounts} restricted</span></div></div>
-              <div className="stat-card"><span className="stat-icon green"><Wallet size={19}/></span><span className="stat-label">Total cash balance</span><strong className="stat-value">{money(Number(overview.totalCashBalance))}</strong><div className="stat-foot"><span>Across all accounts</span></div></div>
-              <div className="stat-card"><span className="stat-icon green"><TrendingUp size={19}/></span><span className="stat-label">Total profits</span><strong className="stat-value">{money(Number(overview.totalProfitBalance))}</strong><div className="stat-foot"><span>Across all accounts</span></div></div>
-              <div className="stat-card"><span className="stat-icon orange"><ArrowDownLeft size={19}/></span><span className="stat-label">Pending deposits</span><strong className="stat-value">{overview.pendingDeposits}</strong><div className="stat-foot"><button className="text-link" onClick={() => go("deposits")} style={{ fontSize: 11 }}>Review <ArrowRight size={13}/></button></div></div>
-              <div className="stat-card"><span className="stat-icon purple"><ArrowUpRight size={19}/></span><span className="stat-label">Pending withdrawals</span><strong className="stat-value">{overview.pendingWithdrawals}</strong><div className="stat-foot"><button className="text-link" onClick={() => go("withdrawals")} style={{ fontSize: 11 }}>Review <ArrowRight size={13}/></button></div></div>
+              <div className="stat-card"><span className="stat-icon blue"><UsersRound size={19}/></span><span className="stat-label">{<LocalizedText text={"Total users"}/>}</span><strong className="stat-value">{overview.totalUsers}</strong><div className="stat-foot"><span>{overview.restrictedAccounts} {<LocalizedText text={"restricted"}/>}</span></div></div>
+              <div className="stat-card"><span className="stat-icon green"><Wallet size={19}/></span><span className="stat-label">{<LocalizedText text={"Total cash balance"}/>}</span><strong className="stat-value">{money(Number(overview.totalCashBalance))}</strong><div className="stat-foot"><span>{<LocalizedText text={"Across all accounts"}/>}</span></div></div>
+              <div className="stat-card"><span className="stat-icon green"><TrendingUp size={19}/></span><span className="stat-label">{<LocalizedText text={"Total profits"}/>}</span><strong className="stat-value">{money(Number(overview.totalProfitBalance))}</strong><div className="stat-foot"><span>{<LocalizedText text={"Across all accounts"}/>}</span></div></div>
+              <div className="stat-card"><span className="stat-icon orange"><ArrowDownLeft size={19}/></span><span className="stat-label">{<LocalizedText text={"Pending deposits"}/>}</span><strong className="stat-value">{overview.pendingDeposits}</strong><div className="stat-foot"><button className="text-link" onClick={() => go("deposits")} style={{ fontSize: 11 }}>{<LocalizedText text={"Review"}/>} <ArrowRight size={13}/></button></div></div>
+              <div className="stat-card"><span className="stat-icon purple"><ArrowUpRight size={19}/></span><span className="stat-label">{<LocalizedText text={"Pending withdrawals"}/>}</span><strong className="stat-value">{overview.pendingWithdrawals}</strong><div className="stat-foot"><button className="text-link" onClick={() => go("withdrawals")} style={{ fontSize: 11 }}>{<LocalizedText text={"Review"}/>} <ArrowRight size={13}/></button></div></div>
             </div>
             <div className="stats-grid three">
-              <div className="stat-card"><span className="stat-icon blue"><Bot size={19}/></span><span className="stat-label">Active bot subscriptions</span><strong className="stat-value">{overview.activeBotSubscriptions}</strong></div>
-              <div className="stat-card"><span className="stat-icon purple"><CopyIcon size={19}/></span><span className="stat-label">Active copy subscriptions</span><strong className="stat-value">{overview.activeCopySubscriptions}</strong></div>
-              <div className="stat-card"><span className="stat-icon green"><Sparkles size={19}/></span><span className="stat-label">Active plan subscriptions</span><strong className="stat-value">{overview.activePlanSubscriptions}</strong></div>
+              <div className="stat-card"><span className="stat-icon blue"><Bot size={19}/></span><span className="stat-label">{<LocalizedText text={"Active bot subscriptions"}/>}</span><strong className="stat-value">{overview.activeBotSubscriptions}</strong></div>
+              <div className="stat-card"><span className="stat-icon purple"><CopyIcon size={19}/></span><span className="stat-label">{<LocalizedText text={"Active copy subscriptions"}/>}</span><strong className="stat-value">{overview.activeCopySubscriptions}</strong></div>
+              <div className="stat-card"><span className="stat-icon green"><Sparkles size={19}/></span><span className="stat-label">{<LocalizedText text={"Active plan subscriptions"}/>}</span><strong className="stat-value">{overview.activePlanSubscriptions}</strong></div>
             </div>
           </>}
           <section className="panel admin-panel" style={{ marginTop: 18, padding: 20 }}>
-            <SectionHeadSimple title="Quick actions"/>
+            <SectionHeadSimple title={translateUI("Quick actions")}/>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", padding: "14px 0 4px" }}>
-              <button className="outline-btn" onClick={() => go("users")}><UsersRound size={16}/> Manage users</button>
-              <button className="outline-btn" onClick={() => go("deposits")}><ArrowDownLeft size={16}/> Review deposits</button>
-              <button className="outline-btn" onClick={() => go("withdrawals")}><ArrowUpRight size={16}/> Review withdrawals</button>
-              <button className="outline-btn" onClick={() => { setShowCreateUser(true); go("users"); }}><UserPlus size={16}/> Add a user</button>
+              <button className="outline-btn" onClick={() => go("users")}><UsersRound size={16}/> {<LocalizedText text={"Manage users"}/>}</button>
+              <button className="outline-btn" onClick={() => go("deposits")}><ArrowDownLeft size={16}/> {<LocalizedText text={"Review deposits"}/>}</button>
+              <button className="outline-btn" onClick={() => go("withdrawals")}><ArrowUpRight size={16}/> {<LocalizedText text={"Review withdrawals"}/>}</button>
+              <button className="outline-btn" onClick={() => { setShowCreateUser(true); go("users"); }}><UserPlus size={16}/> {<LocalizedText text={"Add a user"}/>}</button>
             </div>
           </section>
         </>}
@@ -962,23 +965,23 @@ function AdminPageInner() {
           const pageCount = Math.max(Math.ceil(notifTotal / NOTIF_PAGE_SIZE), 1);
           const currentPageNum = Math.floor(notifOffset / NOTIF_PAGE_SIZE) + 1;
           return <section className="panel">
-            <div className="section-head"><div><h2>All notifications</h2><p>{notifTotal} total · every notable event across every user account</p></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"All notifications"}/>}</h2><p>{notifTotal} {<LocalizedText text={"total · every notable event across every user account"}/>}</p></div>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                {unreadNotifications > 0 && <button className="outline-btn small" onClick={() => void markAllNotificationsRead()}><Check size={14}/> Mark all read</button>}
+                {unreadNotifications > 0 && <button className="outline-btn small" onClick={() => void markAllNotificationsRead()}><Check size={14}/> {<LocalizedText text={"Mark all read"}/>}</button>}
                 <div className="select-wrap" style={{ height: 37 }}><select value={notifTypeFilter} onChange={(e) => { setNotifTypeFilter(e.target.value); void loadAllNotifications(0, e.target.value); }}>{notifFilterOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
               </div>
             </div>
-            {notifLoading ? <div className="no-results">Loading notifications...</div> : allNotifications.length === 0 ? <div className="empty-state"><span className="empty-icon"><Bell size={27}/></span><h3>No notifications</h3><p>Activity across every user account will show up here.</p></div> : <>
+            {notifLoading ? <div className="no-results">{<LocalizedText text={"Loading notifications..."}/>}</div> : allNotifications.length === 0 ? <div className="empty-state"><span className="empty-icon"><Bell size={27}/></span><h3>{<LocalizedText text={"No notifications"}/>}</h3><p>{<LocalizedText text={"Activity across every user account will show up here."}/>}</p></div> : <>
               <div className="notifications-page-list">{allNotifications.map(n => { const { Icon, color } = notificationVisual(n.type); return <div className={`notification-item ${n.readAt ? "" : "unread"}`} key={n.id} onClick={() => !n.readAt && markOneNotificationRead(n.id)} style={{ cursor: n.readAt ? "default" : "pointer" }}>
                 <span className={`notification-icon ${color}`}><Icon size={16}/></span>
-                <div><strong>{n.title}</strong><p>{n.message}</p><small>{new Date(n.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</small>
-                  {n.aboutUserId && <button className="notification-view-account" onClick={(e) => { e.stopPropagation(); viewAccountFromNotification(n.aboutUserId!); }}><UserRound size={11}/> View account</button>}
+                <div><strong><LocalizedText text={n.title}/></strong><p><LocalizedText text={n.message}/></p><small>{new Date(n.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</small>
+                  {n.aboutUserId && <button className="notification-view-account" onClick={(e) => { e.stopPropagation(); viewAccountFromNotification(n.aboutUserId!); }}><UserRound size={11}/> {<LocalizedText text={"View account"}/>}</button>}
                 </div>
               </div>; })}</div>
               <div className="notifications-pagination">
-                <button className="outline-btn small" disabled={page1 <= 1} onClick={() => loadAllNotifications(Math.max(notifOffset - NOTIF_PAGE_SIZE, 0), notifTypeFilter)}><ChevronLeft size={14}/> Previous</button>
-                <span>Page {currentPageNum} of {pageCount}</span>
-                <button className="outline-btn small" disabled={notifOffset + NOTIF_PAGE_SIZE >= notifTotal} onClick={() => loadAllNotifications(notifOffset + NOTIF_PAGE_SIZE, notifTypeFilter)}>Next <ChevronRight size={14}/></button>
+                <button className="outline-btn small" disabled={page1 <= 1} onClick={() => loadAllNotifications(Math.max(notifOffset - NOTIF_PAGE_SIZE, 0), notifTypeFilter)}><ChevronLeft size={14}/> {<LocalizedText text={"Previous"}/>}</button>
+                <span>{<LocalizedText text={"Page"}/>} {currentPageNum} {<LocalizedText text={"of"}/>} {pageCount}</span>
+                <button className="outline-btn small" disabled={notifOffset + NOTIF_PAGE_SIZE >= notifTotal} onClick={() => loadAllNotifications(notifOffset + NOTIF_PAGE_SIZE, notifTypeFilter)}>{<LocalizedText text={"Next"}/>} <ChevronRight size={14}/></button>
               </div>
             </>}
           </section>;
@@ -986,48 +989,48 @@ function AdminPageInner() {
 
         {tab === "users" && !selectedUserId && <>
           <div className="admin-filter-row" style={{ marginBottom: 16, justifyContent: "space-between" }}>
-            <div className="top-search" style={{ width: 280 }}><Search size={17}/><input placeholder="Search by name or email…" value={userSearch} onChange={e => setUserSearch(e.target.value)}/></div>
+            <div className="top-search" style={{ width: 280 }}><Search size={17}/><input placeholder={translateUI("Search by name or email…")} value={userSearch} onChange={e => setUserSearch(e.target.value)}/></div>
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <span className="subtle-label">{userTotals.total} user{userTotals.total === 1 ? "" : "s"} · {money(Number(userTotals.totalCashBalance))} total balance · {money(Number(userTotals.totalProfitBalance))} total profits</span>
-              <button className="outline-btn small" onClick={() => loadUsers(userSearch)}><RefreshCw size={13} className={usersLoading ? "spin" : ""}/> Refresh</button>
-              <button className="primary-btn small" onClick={() => setShowCreateUser(s => !s)}><UserPlus size={15}/> Add user</button>
+              <span className="subtle-label">{userTotals.total} {<LocalizedText text={"user"}/>}{userTotals.total === 1 ? "" : translateUI("s")} {<LocalizedText text={"·"}/>} {money(Number(userTotals.totalCashBalance))} {<LocalizedText text={"total balance ·"}/>} {money(Number(userTotals.totalProfitBalance))} {<LocalizedText text={"total profits"}/>}</span>
+              <button className="outline-btn small" onClick={() => loadUsers(userSearch)}><RefreshCw size={13} className={usersLoading ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button>
+              <button className="primary-btn small" onClick={() => setShowCreateUser(s => !s)}><UserPlus size={15}/> {<LocalizedText text={"Add user"}/>}</button>
             </div>
           </div>
           {showCreateUser && <section className="panel admin-panel" style={{ marginBottom: 18 }}>
-            <div className="section-head"><div><h2>Create a new user</h2><p>Useful for setting up an account for a customer who signed up another way.</p></div></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Create a new user"}/>}</h2><p>{<LocalizedText text={"Useful for setting up an account for a customer who signed up another way."}/>}</p></div></div>
             <form className="admin-account-form" onSubmit={createUser} style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "0 16px" }}>
-              <div><label className="input-label">Full name</label><input className="text-input" value={createUserForm.name} onChange={e => setCreateUserForm({ ...createUserForm, name: e.target.value })} maxLength={80}/></div>
-              <div><label className="input-label">Email</label><input className="text-input" type="email" value={createUserForm.email} onChange={e => setCreateUserForm({ ...createUserForm, email: e.target.value })}/></div>
-              <div><label className="input-label">Password</label><input className="text-input" type="password" placeholder="At least 8 characters" value={createUserForm.password} onChange={e => setCreateUserForm({ ...createUserForm, password: e.target.value })}/></div>
-              <div><label className="input-label">Starting balance</label><input className="text-input" type="number" step="0.01" min="0" value={createUserForm.cashBalance} onChange={e => setCreateUserForm({ ...createUserForm, cashBalance: e.target.value })}/></div>
-              <div><label className="input-label">Starting profits</label><input className="text-input" type="number" step="0.01" min="0" value={createUserForm.profitBalance} onChange={e => setCreateUserForm({ ...createUserForm, profitBalance: e.target.value })}/></div>
+              <div><label className="input-label">{<LocalizedText text={"Full name"}/>}</label><input className="text-input" value={createUserForm.name} onChange={e => setCreateUserForm({ ...createUserForm, name: e.target.value })} maxLength={80}/></div>
+              <div><label className="input-label">{<LocalizedText text={"Email"}/>}</label><input className="text-input" type="email" value={createUserForm.email} onChange={e => setCreateUserForm({ ...createUserForm, email: e.target.value })}/></div>
+              <div><label className="input-label">{<LocalizedText text={"Password"}/>}</label><input className="text-input" type="password" placeholder={translateUI("At least 8 characters")} value={createUserForm.password} onChange={e => setCreateUserForm({ ...createUserForm, password: e.target.value })}/></div>
+              <div><label className="input-label">{<LocalizedText text={"Starting balance"}/>}</label><input className="text-input" type="number" step="0.01" min="0" value={createUserForm.cashBalance} onChange={e => setCreateUserForm({ ...createUserForm, cashBalance: e.target.value })}/></div>
+              <div><label className="input-label">{<LocalizedText text={"Starting profits"}/>}</label><input className="text-input" type="number" step="0.01" min="0" value={createUserForm.profitBalance} onChange={e => setCreateUserForm({ ...createUserForm, profitBalance: e.target.value })}/></div>
               <FundingCurrency id="create-user-fund-currency" value={createUserForm.currency} onChange={c => setCreateUserForm({ ...createUserForm, currency: c })} amounts={[{ label: "starting balance", value: createUserForm.cashBalance }, { label: "starting profits", value: createUserForm.profitBalance }]} rates={fx?.rates ?? null} status={fx?.status ?? "live"}/>
-              <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, marginTop: 14 }}><button className="primary-btn" disabled={createUserBusy}>{createUserBusy ? "Creating..." : "Create user"}</button><button type="button" className="outline-btn" onClick={() => setShowCreateUser(false)}>Cancel</button></div>
+              <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, marginTop: 14 }}><button className="primary-btn" disabled={createUserBusy}>{createUserBusy ? translateUI("Creating...") : translateUI("Create user")}</button><button type="button" className="outline-btn" onClick={() => setShowCreateUser(false)}>{<LocalizedText text={"Cancel"}/>}</button></div>
             </form>
           </section>}
           <section className="panel admin-panel">
-            <div className="table-scroll"><table className="data-table"><thead><tr><th>User</th><th>Role</th><th>Balance</th><th>Profits</th><th>Target</th><th>Status</th><th>Joined</th><th></th></tr></thead><tbody>
+            <div className="table-scroll"><table className="data-table"><thead><tr><th>{<LocalizedText text={"User"}/>}</th><th>{<LocalizedText text={"Role"}/>}</th><th>{<LocalizedText text={"Balance"}/>}</th><th>{<LocalizedText text={"Profits"}/>}</th><th>{<LocalizedText text={"Target"}/>}</th><th>{<LocalizedText text={"Status"}/>}</th><th>{<LocalizedText text={"Joined"}/>}</th><th></th></tr></thead><tbody>
               {userRows.map(u => <tr key={u.id} className="clickable-row" onClick={() => openUser(u.id)}>
                 <td><div className="coin-cell"><span className="avatar" style={{ width: 34, height: 34, fontSize: 11 }}>{u.name.split(" ").map(n => n[0]).slice(0, 2).join("")}</span><div><strong>{u.name}</strong><span>{u.email}</span></div></div></td>
-                <td className="capitalize">{u.role}{u.isDemo ? " · demo" : ""}</td>
+                <td className="capitalize">{u.role}{u.isDemo ? translateUI(" · demo") : ""}</td>
                 <td className="table-strong">{money(Number(u.cashBalance))}</td>
                 <td className="table-strong">{money(Number(u.profitBalance))}</td>
                 <td className="table-strong">{money(Number(u.targetBalance))}</td>
                 <td><span className={`status-pill ${u.accountStatus}`}><span/>{accountStatusLabel(u.accountStatus as AccountStatus)}</span></td>
                 <td className="muted-cell">{new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
-                <td><button className="outline-btn small" onClick={e => { e.stopPropagation(); openUser(u.id); }}>Manage</button></td>
+                <td><button className="outline-btn small" onClick={e => { e.stopPropagation(); openUser(u.id); }}>{<LocalizedText text={"Manage"}/>}</button></td>
               </tr>)}
-            </tbody></table>{userRows.length === 0 && !usersLoading && <div className="empty-state"><span className="empty-icon"><UsersRound size={27}/></span><h3>No users found</h3><p>Try a different search, or add a new user above.</p></div>}</div>
+            </tbody></table>{userRows.length === 0 && !usersLoading && <div className="empty-state"><span className="empty-icon"><UsersRound size={27}/></span><h3>{<LocalizedText text={"No users found"}/>}</h3><p>{<LocalizedText text={"Try a different search, or add a new user above."}/>}</p></div>}</div>
           </section>
         </>}
 
         {tab === "users" && selectedUserId && <>
-          <button className="outline-btn small" onClick={closeUser} style={{ marginBottom: 16 }}><ArrowLeft size={14}/> Back to all users</button>
-          {userDetailLoading && !userDetail ? <div className="no-results">Loading user…</div> : userDetail && <>
+          <button className="outline-btn small" onClick={closeUser} style={{ marginBottom: 16 }}><ArrowLeft size={14}/> {<LocalizedText text={"Back to all users"}/>}</button>
+          {userDetailLoading && !userDetail ? <div className="no-results">{<LocalizedText text={"Loading user…"}/>}</div> : userDetail && <>
             <div className="panel admin-panel" style={{ padding: 20, marginBottom: 18, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <span className="avatar" style={{ width: 48, height: 48, fontSize: 14 }}>{userDetail.user.name.split(" ").map(n => n[0]).slice(0, 2).join("")}</span>
-                <div><h2 style={{ margin: 0, fontSize: 18 }}>{userDetail.user.name}</h2><p style={{ margin: "4px 0 0", color: "#8995a9", fontSize: 12 }}>{userDetail.user.email} · {userDetail.user.role}{userDetail.user.isDemo ? " · demo account" : ""}</p></div>
+                <div><h2 style={{ margin: 0, fontSize: 18 }}>{userDetail.user.name}</h2><p style={{ margin: "4px 0 0", color: "#8995a9", fontSize: 12 }}>{userDetail.user.email} {<LocalizedText text={"·"}/>} {userDetail.user.role}{userDetail.user.isDemo ? translateUI(" · demo account") : ""}</p></div>
               </div>
               <span className={`status-pill ${userDetail.user.accountStatus}`} style={{ fontSize: 12, padding: "7px 12px" }}><span/>{accountStatusLabel(userDetail.user.accountStatus as AccountStatus)}</span>
             </div>
@@ -1035,149 +1038,149 @@ function AdminPageInner() {
             <div className="admin-accounts-layout">
               <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Profile" subtitle="Name, email, and role"/>
+                  <SectionHeadSimple title={translateUI("Profile")} subtitle="Name, email, and role"/>
                   <form className="admin-account-form" onSubmit={saveUserProfile}>
-                    <label className="input-label">Full name</label><input className="text-input" value={editUserForm.name} onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })} maxLength={80}/>
-                    <label className="input-label">Email</label><input className="text-input" type="email" value={editUserForm.email} onChange={e => setEditUserForm({ ...editUserForm, email: e.target.value })}/>
-                    <label className="input-label">Role</label>
-                    <div className="select-wrap"><select value={editUserForm.role} onChange={e => setEditUserForm({ ...editUserForm, role: e.target.value })}><option value="user">User</option><option value="admin">Admin</option></select><ChevronDown size={16}/></div>
-                    <button className="primary-btn full-btn" disabled={editUserBusy} style={{ marginTop: 14 }}><Pencil size={15}/> {editUserBusy ? "Saving..." : "Save profile"}</button>
+                    <label className="input-label">{<LocalizedText text={"Full name"}/>}</label><input className="text-input" value={editUserForm.name} onChange={e => setEditUserForm({ ...editUserForm, name: e.target.value })} maxLength={80}/>
+                    <label className="input-label">{<LocalizedText text={"Email"}/>}</label><input className="text-input" type="email" value={editUserForm.email} onChange={e => setEditUserForm({ ...editUserForm, email: e.target.value })}/>
+                    <label className="input-label">{<LocalizedText text={"Role"}/>}</label>
+                    <div className="select-wrap"><select value={editUserForm.role} onChange={e => setEditUserForm({ ...editUserForm, role: e.target.value })}><option value="user">{<LocalizedText text={"User"}/>}</option><option value="admin">{<LocalizedText text={"Admin"}/>}</option></select><ChevronDown size={16}/></div>
+                    <button className="primary-btn full-btn" disabled={editUserBusy} style={{ marginTop: 14 }}><Pencil size={15}/> {editUserBusy ? translateUI("Saving...") : translateUI("Save profile")}</button>
                   </form>
-                  <div className="profile-readonly-row"><span>Username</span><span>{userDetail.user.username ? `@${userDetail.user.username}` : "Not set"}</span></div>
-                  <div className="profile-readonly-row"><span>Phone</span><span>{userDetail.user.phone ?? "Not set"}</span></div>
-                  <div className="profile-readonly-row"><span>Country</span><span>{userDetail.user.country ?? "Not set"}</span></div>
-                  <div className="profile-readonly-row"><span>Display currency</span><span>{userDetail.user.currency ?? "USD"}</span></div>
+                  <div className="profile-readonly-row"><span>{<LocalizedText text={"Username"}/>}</span><span>{userDetail.user.username ? `@${userDetail.user.username}` : translateUI("Not set")}</span></div>
+                  <div className="profile-readonly-row"><span>{<LocalizedText text={"Phone"}/>}</span><span>{userDetail.user.phone ?? translateUI("Not set")}</span></div>
+                  <div className="profile-readonly-row"><span>{<LocalizedText text={"Country"}/>}</span><span>{userDetail.user.country ?? translateUI("Not set")}</span></div>
+                  <div className="profile-readonly-row"><span>{<LocalizedText text={"Display currency"}/>}</span><span>{userDetail.user.currency ?? "USD"}</span></div>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Account standing" subtitle="Lock, suspend, or limit this account"/>
+                  <SectionHeadSimple title={translateUI("Account standing")} subtitle="Lock, suspend, or limit this account"/>
                   <form className="admin-account-form" onSubmit={saveUserStatus}>
-                    <label className="input-label">Status</label>
+                    <label className="input-label">{<LocalizedText text={"Status"}/>}</label>
                     <div className="select-wrap"><select value={statusForm.accountStatus} onChange={e => setStatusForm({ ...statusForm, accountStatus: e.target.value as AccountStatus })}>{ACCOUNT_STATUSES.map(s => <option key={s} value={s}>{accountStatusLabel(s)}</option>)}</select><ChevronDown size={16}/></div>
                     {statusForm.accountStatus === "limited" && <>
-                      <label className="input-label">Max trade size (USD, optional)</label>
-                      <input className="text-input" type="number" step="0.01" min="0" placeholder="No limit" value={statusForm.maxTradeAmount} onChange={e => setStatusForm({ ...statusForm, maxTradeAmount: e.target.value })}/>
+                      <label className="input-label">{<LocalizedText text={"Max trade size (USD, optional)"}/>}</label>
+                      <input className="text-input" type="number" step="0.01" min="0" placeholder={translateUI("No limit")} value={statusForm.maxTradeAmount} onChange={e => setStatusForm({ ...statusForm, maxTradeAmount: e.target.value })}/>
                       {currency !== "USD" && <StoredUsdHint typed={statusForm.maxTradeAmount} money={money}/>}
-                      <label className="checkbox-row"><input type="checkbox" checked={statusForm.withdrawalsBlocked} onChange={e => setStatusForm({ ...statusForm, withdrawalsBlocked: e.target.checked })}/> Block withdrawals</label>
+                      <label className="checkbox-row"><input type="checkbox" checked={statusForm.withdrawalsBlocked} onChange={e => setStatusForm({ ...statusForm, withdrawalsBlocked: e.target.checked })}/> {<LocalizedText text={"Block withdrawals"}/>}</label>
                     </>}
-                    <label className="input-label">Reason (optional, shown to user)</label>
+                    <label className="input-label">{<LocalizedText text={"Reason (optional, shown to user)"}/>}</label>
                     <textarea className="text-input" rows={2} value={statusForm.statusReason} onChange={e => setStatusForm({ ...statusForm, statusReason: e.target.value })} maxLength={500}/>
-                    <button className="primary-btn full-btn" disabled={statusBusy} style={{ marginTop: 14 }}><ShieldAlert size={15}/> {statusBusy ? "Saving..." : "Update standing"}</button>
+                    <button className="primary-btn full-btn" disabled={statusBusy} style={{ marginTop: 14 }}><ShieldAlert size={15}/> {statusBusy ? translateUI("Saving...") : translateUI("Update standing")}</button>
                   </form>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Edit balance" subtitle="Directly set this user's cash balance"/>
+                  <SectionHeadSimple title={translateUI("Edit balance")} subtitle="Directly set this user's cash balance"/>
                   <form className="admin-account-form" onSubmit={saveBalance}>
-                    <label className="input-label">New balance</label>
+                    <label className="input-label">{<LocalizedText text={"New balance"}/>}</label>
                     <input className="text-input" type="number" step="0.01" min="0" value={balanceForm.newBalance} onChange={e => setBalanceForm({ ...balanceForm, newBalance: e.target.value })}/>
                     <FundingCurrency id="balance-currency" value={balanceForm.currency} onChange={c => setBalanceForm({ ...balanceForm, currency: c })} amounts={[{ value: balanceForm.newBalance }]} rates={fx?.rates ?? null} status={fx?.status ?? "live"}/>
-                    <label className="input-label">Note (optional)</label>
-                    <input className="text-input" placeholder="e.g. Manual correction, bonus credit..." value={balanceForm.note} onChange={e => setBalanceForm({ ...balanceForm, note: e.target.value })} maxLength={300}/>
-                    <button className="primary-btn full-btn" disabled={balanceBusy} style={{ marginTop: 14 }}><Wallet size={15}/> {balanceBusy ? "Saving..." : "Update balance"}</button>
+                    <label className="input-label">{<LocalizedText text={"Note (optional)"}/>}</label>
+                    <input className="text-input" placeholder={translateUI("e.g. Manual correction, bonus credit...")} value={balanceForm.note} onChange={e => setBalanceForm({ ...balanceForm, note: e.target.value })} maxLength={300}/>
+                    <button className="primary-btn full-btn" disabled={balanceBusy} style={{ marginTop: 14 }}><Wallet size={15}/> {balanceBusy ? translateUI("Saving...") : translateUI("Update balance")}</button>
                   </form>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Edit profits" subtitle="Directly set this user's profit balance — folded into their total balance"/>
+                  <SectionHeadSimple title={translateUI("Edit profits")} subtitle="Directly set this user's profit balance — folded into their total balance"/>
                   <form className="admin-account-form" onSubmit={saveProfit}>
-                    <label className="input-label">New profits</label>
+                    <label className="input-label">{<LocalizedText text={"New profits"}/>}</label>
                     <input className="text-input" type="number" step="0.01" min="0" value={profitForm.newProfit} onChange={e => setProfitForm({ ...profitForm, newProfit: e.target.value })}/>
                     <FundingCurrency id="profit-currency" value={profitForm.currency} onChange={c => setProfitForm({ ...profitForm, currency: c })} amounts={[{ value: profitForm.newProfit }]} rates={fx?.rates ?? null} status={fx?.status ?? "live"}/>
-                    <label className="input-label">Note (optional)</label>
-                    <input className="text-input" placeholder="e.g. Copy trading gains, bonus profit..." value={profitForm.note} onChange={e => setProfitForm({ ...profitForm, note: e.target.value })} maxLength={300}/>
-                    <button className="primary-btn full-btn" disabled={profitBusy} style={{ marginTop: 14 }}><TrendingUp size={15}/> {profitBusy ? "Saving..." : "Update profits"}</button>
+                    <label className="input-label">{<LocalizedText text={"Note (optional)"}/>}</label>
+                    <input className="text-input" placeholder={translateUI("e.g. Copy trading gains, bonus profit...")} value={profitForm.note} onChange={e => setProfitForm({ ...profitForm, note: e.target.value })} maxLength={300}/>
+                    <button className="primary-btn full-btn" disabled={profitBusy} style={{ marginTop: 14 }}><TrendingUp size={15}/> {profitBusy ? translateUI("Saving...") : translateUI("Update profits")}</button>
                   </form>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Edit Target" subtitle="A goal figure and progress bar shown as a banner above their balance on the dashboard — both set manually by you, never derived from their real balance"/>
+                  <SectionHeadSimple title={translateUI("Edit Target")} subtitle="A goal figure and progress bar shown as a banner above their balance on the dashboard — both set manually by you, never derived from their real balance"/>
                   <form className="admin-account-form" onSubmit={saveTarget}>
-                    <label className="input-label">New Target</label>
+                    <label className="input-label">{<LocalizedText text={"New Target"}/>}</label>
                     <input className="text-input" type="number" step="0.01" min="0" value={targetForm.newTarget} onChange={e => setTargetForm({ ...targetForm, newTarget: e.target.value })}/>
                     <FundingCurrency id="target-currency" value={targetForm.currency} onChange={c => setTargetForm({ ...targetForm, currency: c })} amounts={[{ value: targetForm.newTarget }]} rates={fx?.rates ?? null} status={fx?.status ?? "live"}/>
-                    <label className="input-label">Progress bar (%)</label>
-                    <input className="text-input" type="number" step="1" min="0" max="100" placeholder="e.g. 65" value={targetForm.newProgress} onChange={e => setTargetForm({ ...targetForm, newProgress: e.target.value })}/>
-                    <button className="primary-btn full-btn" disabled={targetBusy} style={{ marginTop: 14 }}><Target size={15}/> {targetBusy ? "Saving..." : "Update Target"}</button>
+                    <label className="input-label">{<LocalizedText text={"Progress bar (%)"}/>}</label>
+                    <input className="text-input" type="number" step="1" min="0" max="100" placeholder={translateUI("e.g. 65")} value={targetForm.newProgress} onChange={e => setTargetForm({ ...targetForm, newProgress: e.target.value })}/>
+                    <button className="primary-btn full-btn" disabled={targetBusy} style={{ marginTop: 14 }}><Target size={15}/> {targetBusy ? translateUI("Saving...") : translateUI("Update Target")}</button>
                   </form>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Send a notification" subtitle="Shown in this user's notification bell"/>
+                  <SectionHeadSimple title={translateUI("Send a notification")} subtitle="Shown in this user's notification bell"/>
                   <form className="admin-account-form" onSubmit={sendNotification}>
-                    <label className="input-label">Title</label>
+                    <label className="input-label">{<LocalizedText text={"Title"}/>}</label>
                     <input className="text-input" value={notifForm.title} onChange={e => setNotifForm({ ...notifForm, title: e.target.value })} maxLength={120}/>
-                    <label className="input-label">Message</label>
+                    <label className="input-label">{<LocalizedText text={"Message"}/>}</label>
                     <textarea className="text-input" rows={3} value={notifForm.message} onChange={e => setNotifForm({ ...notifForm, message: e.target.value })} maxLength={1000}/>
-                    <button className="primary-btn full-btn" disabled={notifBusy} style={{ marginTop: 14 }}><Send size={15}/> {notifBusy ? "Sending..." : "Send notification"}</button>
+                    <button className="primary-btn full-btn" disabled={notifBusy} style={{ marginTop: 14 }}><Send size={15}/> {notifBusy ? translateUI("Sending...") : translateUI("Send notification")}</button>
                   </form>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Place a manual trade" subtitle="For phone/chat support requests. Defaults to the live price."/>
+                  <SectionHeadSimple title={translateUI("Place a manual trade")} subtitle="For phone/chat support requests. Defaults to the live price."/>
                   <form className="admin-account-form" onSubmit={placeManualTrade}>
-                    <div className="segmented full"><button type="button" className={manualTradeForm.side === "buy" ? "active buy-active" : ""} onClick={() => setManualTradeForm({ ...manualTradeForm, side: "buy" })}>Buy</button><button type="button" className={manualTradeForm.side === "sell" ? "active sell-active" : ""} onClick={() => setManualTradeForm({ ...manualTradeForm, side: "sell" })}>Sell</button></div>
-                    <label className="input-label">Asset</label>
-                    <div className="select-wrap"><select value={manualTradeForm.symbol} onChange={e => setManualTradeForm({ ...manualTradeForm, symbol: e.target.value })}>{catalogAssets.map(a => <option key={a.symbol} value={a.symbol}>{a.name} ({a.symbol})</option>)}</select><ChevronDown size={16}/></div>
-                    <label className="input-label">Quantity</label>
+                    <div className="segmented full"><button type="button" className={manualTradeForm.side === "buy" ? "active buy-active" : ""} onClick={() => setManualTradeForm({ ...manualTradeForm, side: "buy" })}>{<LocalizedText text={"Buy"}/>}</button><button type="button" className={manualTradeForm.side === "sell" ? "active sell-active" : ""} onClick={() => setManualTradeForm({ ...manualTradeForm, side: "sell" })}>{<LocalizedText text={"Sell"}/>}</button></div>
+                    <label className="input-label">{<LocalizedText text={"Asset"}/>}</label>
+                    <div className="select-wrap"><select value={manualTradeForm.symbol} onChange={e => setManualTradeForm({ ...manualTradeForm, symbol: e.target.value })}>{catalogAssets.map(a => <option key={a.symbol} value={a.symbol}>{a.name} {<LocalizedText text={"("}/>}{a.symbol}{<LocalizedText text={")"}/>}</option>)}</select><ChevronDown size={16}/></div>
+                    <label className="input-label">{<LocalizedText text={"Quantity"}/>}</label>
                     <input className="text-input" type="number" step="any" min="0" value={manualTradeForm.quantity} onChange={e => setManualTradeForm({ ...manualTradeForm, quantity: e.target.value })}/>
-                    <label className="input-label">Custom fill price ({currency}, optional — defaults to live price)</label>
-                    <input className="text-input" type="number" step="0.01" min="0" placeholder="Live market price" value={manualTradeForm.price} onChange={e => setManualTradeForm({ ...manualTradeForm, price: e.target.value })}/>
-                    <label className="input-label">Note (optional)</label>
-                    <input className="text-input" placeholder="e.g. Quoted over phone at 10:45am" value={manualTradeForm.note} onChange={e => setManualTradeForm({ ...manualTradeForm, note: e.target.value })} maxLength={300}/>
-                    <button className="primary-btn full-btn" disabled={manualTradeBusy} style={{ marginTop: 14 }}><ArrowLeftRight size={15}/> {manualTradeBusy ? "Placing..." : "Place trade"}</button>
+                    <label className="input-label">{<LocalizedText text={"Custom fill price ("}/>}{currency}{<LocalizedText text={", optional — defaults to live price)"}/>}</label>
+                    <input className="text-input" type="number" step="0.01" min="0" placeholder={translateUI("Live market price")} value={manualTradeForm.price} onChange={e => setManualTradeForm({ ...manualTradeForm, price: e.target.value })}/>
+                    <label className="input-label">{<LocalizedText text={"Note (optional)"}/>}</label>
+                    <input className="text-input" placeholder={translateUI("e.g. Quoted over phone at 10:45am")} value={manualTradeForm.note} onChange={e => setManualTradeForm({ ...manualTradeForm, note: e.target.value })} maxLength={300}/>
+                    <button className="primary-btn full-btn" disabled={manualTradeBusy} style={{ marginTop: 14 }}><ArrowLeftRight size={15}/> {manualTradeBusy ? translateUI("Placing...") : translateUI("Place trade")}</button>
                   </form>
                 </section>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Subscriptions" subtitle="Bot, copy trading, and plan subscriptions"/>
+                  <SectionHeadSimple title={translateUI("Subscriptions")} subtitle="Bot, copy trading, and plan subscriptions"/>
                   <div className="admin-account-list">
                     {[...userDetail.botSubscriptions.map(s => ({ ...s, kind: "bot" as const, name: s.botName! })), ...userDetail.copySubscriptions.map(s => ({ ...s, kind: "copy" as const, name: s.traderName! })), ...userDetail.planSubscriptions.map(s => ({ ...s, kind: "plan" as const, name: s.planName! }))]
                       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
                       .map(s => { const activeSub = renderNow === null || new Date(s.expiresAt).getTime() > renderNow; return <div className="admin-account-item" key={`${s.kind}-${s.id}`}>
-                        <div className="admin-account-item-top"><strong>{s.name} <span style={{ color: "#9aa4b7", fontWeight: 500, textTransform: "capitalize" }}>· {s.kind}</span></strong><span className={`status-pill ${activeSub ? "approved" : "expired"}`}><span/>{activeSub ? "Active" : "Expired"}</span></div>
-                        <p>{money(Number(s.amount))} · started {new Date(s.startedAt).toLocaleDateString()} · expires {new Date(s.expiresAt).toLocaleDateString()}</p>
-                        {activeSub && <div className="admin-account-item-actions"><button className="outline-btn small danger-outline" disabled={subBusyId === s.id} onClick={() => cancelSubscription(s.kind, s.id)}><X size={13}/> End now</button></div>}
+                        <div className="admin-account-item-top"><strong>{s.name} <span style={{ color: "#9aa4b7", fontWeight: 500, textTransform: "capitalize" }}>{<LocalizedText text={"·"}/>} {s.kind}</span></strong><span className={`status-pill ${activeSub ? "approved" : "expired"}`}><span/>{activeSub ? translateUI("Active") : translateUI("Expired")}</span></div>
+                        <p>{money(Number(s.amount))} {<LocalizedText text={"· started"}/>} {new Date(s.startedAt).toLocaleDateString()} {<LocalizedText text={"· expires"}/>} {new Date(s.expiresAt).toLocaleDateString()}</p>
+                        {activeSub && <div className="admin-account-item-actions"><button className="outline-btn small danger-outline" disabled={subBusyId === s.id} onClick={() => cancelSubscription(s.kind, s.id)}><X size={13}/> {<LocalizedText text={"End now"}/>}</button></div>}
                       </div>; })}
-                    {userDetail.botSubscriptions.length + userDetail.copySubscriptions.length + userDetail.planSubscriptions.length === 0 && <div className="empty-state"><span className="empty-icon"><Sparkles size={27}/></span><h3>No subscriptions</h3><p>This user hasn&apos;t subscribed to anything yet.</p></div>}
+                    {userDetail.botSubscriptions.length + userDetail.copySubscriptions.length + userDetail.planSubscriptions.length === 0 && <div className="empty-state"><span className="empty-icon"><Sparkles size={27}/></span><h3>{<LocalizedText text={"No subscriptions"}/>}</h3><p>{<LocalizedText text={"This user hasn't subscribed to anything yet."}/>}</p></div>}
                   </div>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Recent trades"/>
-                  <div className="table-scroll"><table className="data-table"><thead><tr><th>Asset</th><th>Side</th><th>Qty</th><th>Price</th><th>Total</th><th>Date</th></tr></thead><tbody>
-                    {userDetail.trades.map(t => <tr key={t.id}><td className="table-strong">{t.symbol}{t.placedBy && <span className="placed-by-support-badge"> <UserRound size={11}/> Admin</span>}</td><td className="capitalize">{t.side}</td><td>{Number(t.quantity)}</td><td>{marketPrice(Number(t.price))}</td><td className="table-strong">{money(Number(t.total))}</td><td className="muted-cell">{new Date(t.createdAt).toLocaleDateString()}</td></tr>)}
-                  </tbody></table>{userDetail.trades.length === 0 && <div className="empty-state"><span className="empty-icon"><History size={27}/></span><h3>No trades yet</h3><p>&nbsp;</p></div>}</div>
+                  <SectionHeadSimple title={translateUI("Recent trades")}/>
+                  <div className="table-scroll"><table className="data-table"><thead><tr><th>{<LocalizedText text={"Asset"}/>}</th><th>{<LocalizedText text={"Side"}/>}</th><th>{<LocalizedText text={"Qty"}/>}</th><th>{<LocalizedText text={"Price"}/>}</th><th>{<LocalizedText text={"Total"}/>}</th><th>{<LocalizedText text={"Date"}/>}</th></tr></thead><tbody>
+                    {userDetail.trades.map(t => <tr key={t.id}><td className="table-strong">{t.symbol}{t.placedBy && <span className="placed-by-support-badge"> <UserRound size={11}/> {<LocalizedText text={"Admin"}/>}</span>}</td><td className="capitalize">{t.side}</td><td>{Number(t.quantity)}</td><td>{marketPrice(Number(t.price))}</td><td className="table-strong">{money(Number(t.total))}</td><td className="muted-cell">{new Date(t.createdAt).toLocaleDateString()}</td></tr>)}
+                  </tbody></table>{userDetail.trades.length === 0 && <div className="empty-state"><span className="empty-icon"><History size={27}/></span><h3>{<LocalizedText text={"No trades yet"}/>}</h3><p>{<LocalizedText text={"&nbsp;"}/>}</p></div>}</div>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Recent transactions"/>
-                  <div className="table-scroll"><table className="data-table"><thead><tr><th>Description</th><th>Type</th><th>Amount</th><th>Date</th></tr></thead><tbody>
+                  <SectionHeadSimple title={translateUI("Recent transactions")}/>
+                  <div className="table-scroll"><table className="data-table"><thead><tr><th>{<LocalizedText text={"Description"}/>}</th><th>{<LocalizedText text={"Type"}/>}</th><th>{<LocalizedText text={"Amount"}/>}</th><th>{<LocalizedText text={"Date"}/>}</th></tr></thead><tbody>
                     {userDetail.transactions.map(t => <tr key={t.id}><td>{t.description}</td><td className="capitalize">{t.type.replace("_", " ")}</td><td className="table-strong">{money(Number(t.amount))}</td><td className="muted-cell">{new Date(t.createdAt).toLocaleDateString()}</td></tr>)}
-                  </tbody></table>{userDetail.transactions.length === 0 && <div className="empty-state"><span className="empty-icon"><CreditCard size={27}/></span><h3>No transactions yet</h3><p>&nbsp;</p></div>}</div>
+                  </tbody></table>{userDetail.transactions.length === 0 && <div className="empty-state"><span className="empty-icon"><CreditCard size={27}/></span><h3>{<LocalizedText text={"No transactions yet"}/>}</h3><p>{<LocalizedText text={"&nbsp;"}/>}</p></div>}</div>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Deposit & withdrawal requests"/>
+                  <SectionHeadSimple title={translateUI("Deposit & withdrawal requests")}/>
                   <div className="admin-account-list">
                     {[...userDetail.depositRequests.map(r => ({ ...r, kind: "Deposit" })), ...userDetail.withdrawalRequests.map(r => ({ ...r, kind: "Withdrawal" }))].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(r => <div className="admin-account-item" key={`${r.kind}-${r.id}`}>
-                      <div className="admin-account-item-top"><strong>{r.kind} · {money(Number(r.amount))}</strong><span className={`status-pill ${r.status}`}><span/>{r.status}</span></div>
+                      <div className="admin-account-item-top"><strong>{r.kind} {<LocalizedText text={"·"}/>} {money(Number(r.amount))}</strong><span className={`status-pill ${r.status}`}><span/>{r.status}</span></div>
                       <p>{new Date(r.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
                     </div>)}
-                    {userDetail.depositRequests.length + userDetail.withdrawalRequests.length === 0 && <div className="empty-state"><span className="empty-icon"><Wallet size={27}/></span><h3>No requests yet</h3><p>&nbsp;</p></div>}
+                    {userDetail.depositRequests.length + userDetail.withdrawalRequests.length === 0 && <div className="empty-state"><span className="empty-icon"><Wallet size={27}/></span><h3>{<LocalizedText text={"No requests yet"}/>}</h3><p>{<LocalizedText text={"&nbsp;"}/>}</p></div>}
                   </div>
                 </section>
 
                 <section className="panel admin-panel">
-                  <SectionHeadSimple title="Notifications sent" subtitle="Admin notifications sent to this user"/>
+                  <SectionHeadSimple title={translateUI("Notifications sent")} subtitle="Admin notifications sent to this user"/>
                   <div className="admin-account-list">
                     {userDetail.notifications.map(n => <div className="admin-account-item" key={n.id}>
-                      <div className="admin-account-item-top"><strong>{n.title}</strong><span className={`status-pill ${n.readAt ? "approved" : "pending"}`}><span/>{n.readAt ? "Read" : "Unread"}</span></div>
-                      <p>{n.message}</p>
+                      <div className="admin-account-item-top"><strong><LocalizedText text={n.title}/></strong><span className={`status-pill ${n.readAt ? "approved" : "pending"}`}><span/>{n.readAt ? translateUI("Read") : translateUI("Unread")}</span></div>
+                      <p><LocalizedText text={n.message}/></p>
                     </div>)}
-                    {userDetail.notifications.length === 0 && <div className="empty-state"><span className="empty-icon"><Bell size={27}/></span><h3>No notifications sent</h3><p>&nbsp;</p></div>}
+                    {userDetail.notifications.length === 0 && <div className="empty-state"><span className="empty-icon"><Bell size={27}/></span><h3>{<LocalizedText text={"No notifications sent"}/>}</h3><p>{<LocalizedText text={"&nbsp;"}/>}</p></div>}
                   </div>
                 </section>
               </div>
@@ -1187,37 +1190,37 @@ function AdminPageInner() {
 
         {tab === "deposits" && <section className="panel admin-panel">
           <div className="section-head">
-            <div><h2>Deposit requests</h2><p>Approving credits the user&apos;s balance immediately; nothing is credited automatically.</p></div>
+            <div><h2>{<LocalizedText text={"Deposit requests"}/>}</h2><p>{<LocalizedText text={"Approving credits the user's balance immediately; nothing is credited automatically."}/>}</p></div>
             <div className="admin-filter-row">
               <div className="segmented">{(["pending", "approved", "rejected", "all"] as const).map(s => <button key={s} className={statusFilter === s ? "active" : ""} onClick={() => setStatusFilter(s)}>{s[0].toUpperCase() + s.slice(1)}</button>)}</div>
-              <button className="outline-btn small" onClick={() => loadRequests(statusFilter)}><RefreshCw size={13} className={requestsLoading ? "spin" : ""}/> Refresh</button>
+              <button className="outline-btn small" onClick={() => loadRequests(statusFilter)}><RefreshCw size={13} className={requestsLoading ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button>
             </div>
           </div>
           <div className="admin-request-list">
-            {requests.length === 0 && !requestsLoading && <div className="empty-state"><span className="empty-icon"><Clock3 size={27}/></span><h3>No {statusFilter === "all" ? "" : statusFilter} deposit requests</h3><p>Submitted deposit requests will appear here.</p></div>}
+            {requests.length === 0 && !requestsLoading && <div className="empty-state"><span className="empty-icon"><Clock3 size={27}/></span><h3>{<LocalizedText text={"No"}/>} {statusFilter === "all" ? "" : statusFilter} {<LocalizedText text={"deposit requests"}/>}</h3><p>{<LocalizedText text={"Submitted deposit requests will appear here."}/>}</p></div>}
             {requests.map(r => <div className="admin-request-card" key={r.id}>
               <div className="admin-request-head">
-                <div><strong>{money(Number(r.amount))}</strong><span className="admin-request-method">{depositMethodLabel(r.method)}{r.destinationLabel ? ` · ${r.destinationLabel}` : ""}</span></div>
-                <span className={`status-pill ${r.status}`}><span/>{r.status === "pending" ? "Pending review" : r.status === "approved" ? "Approved" : "Rejected"}</span>
+                <div><strong>{money(Number(r.amount))}</strong><span className="admin-request-method">{translateUI(depositMethodLabel(r.method))}{r.destinationLabel ? ` · ${r.destinationLabel}` : ""}</span></div>
+                <span className={`status-pill ${r.status}`}><span/>{r.status === "pending" ? translateUI("Pending review") : r.status === "approved" ? translateUI("Approved") : translateUI("Rejected")}</span>
               </div>
               <div className="admin-request-meta">
-                <div><span>User</span><strong>{r.userName}</strong><small>{r.userEmail}</small></div>
-                <div><span>Submitted</span><strong>{new Date(r.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong></div>
-                {r.reference && <div><span>Reference</span><strong>{r.reference}</strong></div>}
-                <div><span>Receipt</span><a href={`/api/deposits/${r.id}/receipt`} target="_blank" rel="noreferrer" className="text-link">View file <Activity size={13}/></a></div>
+                <div><span>{<LocalizedText text={"User"}/>}</span><strong>{r.userName}</strong><small>{r.userEmail}</small></div>
+                <div><span>{<LocalizedText text={"Submitted"}/>}</span><strong>{new Date(r.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong></div>
+                {r.reference && <div><span>{<LocalizedText text={"Reference"}/>}</span><strong>{r.reference}</strong></div>}
+                <div><span>{<LocalizedText text={"Receipt"}/>}</span><a href={`/api/deposits/${r.id}/receipt`} target="_blank" rel="noreferrer" className="text-link">{<LocalizedText text={"View file"}/>} <Activity size={13}/></a></div>
               </div>
-              {r.note && <p className="admin-request-note"><strong>User note:</strong> {r.note}</p>}
+              {r.note && <p className="admin-request-note"><strong>{<LocalizedText text={"User note:"}/>}</strong> {r.note}</p>}
               {r.adminNote && <p className="admin-request-note admin-note-flag"><AlertTriangle size={13}/> {r.adminNote}</p>}
               {r.status === "pending" && <div className="admin-request-actions">
                 {rejectingId === r.id ? <div className="admin-reject-form">
-                  <textarea className="text-input" placeholder="Reason for rejection (shown to the user)" value={rejectNote} onChange={e => setRejectNote(e.target.value)} rows={2}/>
+                  <textarea className="text-input" placeholder={translateUI("Reason for rejection (shown to the user)")} value={rejectNote} onChange={e => setRejectNote(e.target.value)} rows={2}/>
                   <div className="admin-reject-buttons">
-                    <button className="outline-btn small" onClick={() => { setRejectingId(null); setRejectNote(""); }}>Cancel</button>
-                    <button className="primary-btn small reject-btn" disabled={busyId === r.id || !rejectNote.trim()} onClick={() => review(r.id, "reject", rejectNote)}><X size={14}/> Confirm reject</button>
+                    <button className="outline-btn small" onClick={() => { setRejectingId(null); setRejectNote(""); }}>{<LocalizedText text={"Cancel"}/>}</button>
+                    <button className="primary-btn small reject-btn" disabled={busyId === r.id || !rejectNote.trim()} onClick={() => review(r.id, "reject", rejectNote)}><X size={14}/> {<LocalizedText text={"Confirm reject"}/>}</button>
                   </div>
                 </div> : <>
-                  <button className="primary-btn small" disabled={busyId === r.id} onClick={() => review(r.id, "approve")}><Check size={14}/> Approve &amp; credit</button>
-                  <button className="outline-btn small reject-outline" disabled={busyId === r.id} onClick={() => setRejectingId(r.id)}><X size={14}/> Reject</button>
+                  <button className="primary-btn small" disabled={busyId === r.id} onClick={() => review(r.id, "approve")}><Check size={14}/> {<LocalizedText text={"Approve & credit"}/>}</button>
+                  <button className="outline-btn small reject-outline" disabled={busyId === r.id} onClick={() => setRejectingId(r.id)}><X size={14}/> {<LocalizedText text={"Reject"}/>}</button>
                 </>}
               </div>}
             </div>)}
@@ -1226,36 +1229,36 @@ function AdminPageInner() {
 
         {tab === "withdrawals" && <section className="panel admin-panel">
           <div className="section-head">
-            <div><h2>Withdrawal requests</h2><p>The requested amount is already held from the user&apos;s balance. Send the payout yourself, then approve here to finalize, or reject to refund it.</p></div>
+            <div><h2>{<LocalizedText text={"Withdrawal requests"}/>}</h2><p>{<LocalizedText text={"The requested amount is already held from the user's balance. Send the payout yourself, then approve here to finalize, or reject to refund it."}/>}</p></div>
             <div className="admin-filter-row">
               <div className="segmented">{(["pending", "approved", "rejected", "all"] as const).map(s => <button key={s} className={wStatusFilter === s ? "active" : ""} onClick={() => setWStatusFilter(s)}>{s[0].toUpperCase() + s.slice(1)}</button>)}</div>
-              <button className="outline-btn small" onClick={() => loadWithdrawalRequests(wStatusFilter)}><RefreshCw size={13} className={wRequestsLoading ? "spin" : ""}/> Refresh</button>
+              <button className="outline-btn small" onClick={() => loadWithdrawalRequests(wStatusFilter)}><RefreshCw size={13} className={wRequestsLoading ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button>
             </div>
           </div>
           <div className="admin-request-list">
-            {wRequests.length === 0 && !wRequestsLoading && <div className="empty-state"><span className="empty-icon"><Clock3 size={27}/></span><h3>No {wStatusFilter === "all" ? "" : wStatusFilter} withdrawal requests</h3><p>Submitted withdrawal requests will appear here.</p></div>}
+            {wRequests.length === 0 && !wRequestsLoading && <div className="empty-state"><span className="empty-icon"><Clock3 size={27}/></span><h3>{<LocalizedText text={"No"}/>} {wStatusFilter === "all" ? "" : wStatusFilter} {<LocalizedText text={"withdrawal requests"}/>}</h3><p>{<LocalizedText text={"Submitted withdrawal requests will appear here."}/>}</p></div>}
             {wRequests.map(r => <div className="admin-request-card" key={r.id}>
               <div className="admin-request-head">
-                <div><strong>{money(Number(r.amount))}</strong><span className="admin-request-method">{withdrawalMethodLabel(r.method, r.methodLabel)}</span></div>
-                <span className={`status-pill ${r.status}`}><span/>{r.status === "pending" ? "Pending review" : r.status === "approved" ? "Approved" : "Rejected"}</span>
+                <div><strong>{money(Number(r.amount))}</strong><span className="admin-request-method">{translateUI(withdrawalMethodLabel(r.method, r.methodLabel))}</span></div>
+                <span className={`status-pill ${r.status}`}><span/>{r.status === "pending" ? translateUI("Pending review") : r.status === "approved" ? translateUI("Approved") : translateUI("Rejected")}</span>
               </div>
               <div className="admin-request-meta">
-                <div><span>User</span><strong>{r.userName}</strong><small>{r.userEmail}</small></div>
-                <div><span>Submitted</span><strong>{new Date(r.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong></div>
-                <div><span>Send payout to</span><strong>{r.destination}</strong></div>
+                <div><span>{<LocalizedText text={"User"}/>}</span><strong>{r.userName}</strong><small>{r.userEmail}</small></div>
+                <div><span>{<LocalizedText text={"Submitted"}/>}</span><strong>{new Date(r.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</strong></div>
+                <div><span>{<LocalizedText text={"Send payout to"}/>}</span><strong>{r.destination}</strong></div>
               </div>
-              {r.note && <p className="admin-request-note"><strong>User note:</strong> {r.note}</p>}
+              {r.note && <p className="admin-request-note"><strong>{<LocalizedText text={"User note:"}/>}</strong> {r.note}</p>}
               {r.adminNote && <p className="admin-request-note admin-note-flag"><AlertTriangle size={13}/> {r.adminNote}</p>}
               {r.status === "pending" && <div className="admin-request-actions">
                 {wRejectingId === r.id ? <div className="admin-reject-form">
-                  <textarea className="text-input" placeholder="Reason for rejection (shown to the user; the held amount is refunded)" value={wRejectNote} onChange={e => setWRejectNote(e.target.value)} rows={2}/>
+                  <textarea className="text-input" placeholder={translateUI("Reason for rejection (shown to the user; the held amount is refunded)")} value={wRejectNote} onChange={e => setWRejectNote(e.target.value)} rows={2}/>
                   <div className="admin-reject-buttons">
-                    <button className="outline-btn small" onClick={() => { setWRejectingId(null); setWRejectNote(""); }}>Cancel</button>
-                    <button className="primary-btn small reject-btn" disabled={wBusyId === r.id || !wRejectNote.trim()} onClick={() => reviewWithdrawal(r.id, "reject", wRejectNote)}><X size={14}/> Confirm reject &amp; refund</button>
+                    <button className="outline-btn small" onClick={() => { setWRejectingId(null); setWRejectNote(""); }}>{<LocalizedText text={"Cancel"}/>}</button>
+                    <button className="primary-btn small reject-btn" disabled={wBusyId === r.id || !wRejectNote.trim()} onClick={() => reviewWithdrawal(r.id, "reject", wRejectNote)}><X size={14}/> {<LocalizedText text={"Confirm reject & refund"}/>}</button>
                   </div>
                 </div> : <>
-                  <button className="primary-btn small" disabled={wBusyId === r.id} onClick={() => reviewWithdrawal(r.id, "approve")}><Check size={14}/> Approve (I sent it)</button>
-                  <button className="outline-btn small reject-outline" disabled={wBusyId === r.id} onClick={() => setWRejectingId(r.id)}><X size={14}/> Reject &amp; refund</button>
+                  <button className="primary-btn small" disabled={wBusyId === r.id} onClick={() => reviewWithdrawal(r.id, "approve")}><Check size={14}/> {<LocalizedText text={"Approve (I sent it)"}/>}</button>
+                  <button className="outline-btn small reject-outline" disabled={wBusyId === r.id} onClick={() => setWRejectingId(r.id)}><X size={14}/> {<LocalizedText text={"Reject & refund"}/>}</button>
                 </>}
               </div>}
             </div>)}
@@ -1264,19 +1267,19 @@ function AdminPageInner() {
 
         {tab === "accounts" && <section className="admin-accounts-layout">
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Add a deposit destination</h2><p>This is shown to users when they choose this payment method.</p></div></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Add a deposit destination"}/>}</h2><p>{<LocalizedText text={"This is shown to users when they choose this payment method."}/>}</p></div></div>
             <form className="admin-account-form" onSubmit={createAccount}>
-              <label className="input-label">Method</label>
+              <label className="input-label">{<LocalizedText text={"Method"}/>}</label>
               <div className="select-wrap"><select value={newMethod} onChange={e => setNewMethod(e.target.value as DepositMethod)}>{DEPOSIT_METHODS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}</select></div>
-              <label className="input-label">Label</label>
-              <input className="text-input" placeholder="e.g. Bitcoin (BTC) or Chase Bank - Checking" value={newLabel} onChange={e => setNewLabel(e.target.value)} maxLength={120}/>
-              <label className="input-label">Details shown to users</label>
+              <label className="input-label">{<LocalizedText text={"Label"}/>}</label>
+              <input className="text-input" placeholder={translateUI("e.g. Bitcoin (BTC) or Chase Bank - Checking")} value={newLabel} onChange={e => setNewLabel(e.target.value)} maxLength={120}/>
+              <label className="input-label">{<LocalizedText text={"Details shown to users"}/>}</label>
               <textarea className="text-input deposit-textarea" placeholder={"e.g.\nAddress: bc1q...\nNetwork: Bitcoin (BTC only)"} value={newInstructions} onChange={e => setNewInstructions(e.target.value)} rows={4} maxLength={2000}/>
-              <button className="primary-btn full-btn" disabled={creating}>{creating ? "Adding..." : "Add destination"}</button>
+              <button className="primary-btn full-btn" disabled={creating}>{creating ? translateUI("Adding...") : translateUI("Add destination")}</button>
             </form>
           </section>
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Current destinations</h2><p>{accounts.length} configured</p></div><button className="outline-btn small" onClick={loadAccounts}><RefreshCw size={13} className={accountsLoading ? "spin" : ""}/> Refresh</button></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Current destinations"}/>}</h2><p>{accounts.length} {<LocalizedText text={"configured"}/>}</p></div><button className="outline-btn small" onClick={loadAccounts}><RefreshCw size={13} className={accountsLoading ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button></div>
             <div className="admin-account-list">
               {DEPOSIT_METHODS.map(m => {
                 const items = accounts.filter(a => a.method === m.id);
@@ -1287,63 +1290,63 @@ function AdminPageInner() {
                     {editingId === a.id ? <div className="admin-account-edit">
                       <input className="text-input" value={editLabel} onChange={e => setEditLabel(e.target.value)} maxLength={120}/>
                       <textarea className="text-input deposit-textarea" value={editInstructions} onChange={e => setEditInstructions(e.target.value)} rows={3} maxLength={2000}/>
-                      <div className="admin-reject-buttons"><button className="outline-btn small" onClick={() => setEditingId(null)}>Cancel</button><button className="primary-btn small" onClick={() => saveEdit(a.id)}>Save</button></div>
+                      <div className="admin-reject-buttons"><button className="outline-btn small" onClick={() => setEditingId(null)}>{<LocalizedText text={"Cancel"}/>}</button><button className="primary-btn small" onClick={() => saveEdit(a.id)}>{<LocalizedText text={"Save"}/>}</button></div>
                     </div> : <>
-                      <div className="admin-account-item-top"><strong>{a.label}</strong><span className={`status-pill ${a.isActive ? "approved" : "rejected"}`}><span/>{a.isActive ? "Active" : "Hidden"}</span></div>
+                      <div className="admin-account-item-top"><strong>{a.label}</strong><span className={`status-pill ${a.isActive ? "approved" : "rejected"}`}><span/>{a.isActive ? translateUI("Active") : translateUI("Hidden")}</span></div>
                       <p>{a.instructions}</p>
                       <div className="admin-account-item-actions">
-                        <button className="outline-btn small" onClick={() => { setEditingId(a.id); setEditLabel(a.label); setEditInstructions(a.instructions); }}>Edit</button>
-                        <button className="outline-btn small" onClick={() => toggleActive(a)}>{a.isActive ? "Hide" : "Activate"}</button>
-                        <button className="outline-btn small danger-outline" onClick={() => removeAccount(a.id)}><Trash2 size={13}/> Delete</button>
+                        <button className="outline-btn small" onClick={() => { setEditingId(a.id); setEditLabel(a.label); setEditInstructions(a.instructions); }}>{<LocalizedText text={"Edit"}/>}</button>
+                        <button className="outline-btn small" onClick={() => toggleActive(a)}>{a.isActive ? translateUI("Hide") : translateUI("Activate")}</button>
+                        <button className="outline-btn small danger-outline" onClick={() => removeAccount(a.id)}><Trash2 size={13}/> {<LocalizedText text={"Delete"}/>}</button>
                       </div>
                     </>}
                   </div>)}
                 </div>;
               })}
-              {accounts.length === 0 && !accountsLoading && <div className="empty-state"><span className="empty-icon"><ShieldCheck size={27}/></span><h3>No destinations configured</h3><p>Add one on the left so users know where to send funds.</p></div>}
+              {accounts.length === 0 && !accountsLoading && <div className="empty-state"><span className="empty-icon"><ShieldCheck size={27}/></span><h3>{<LocalizedText text={"No destinations configured"}/>}</h3><p>{<LocalizedText text={"Add one on the left so users know where to send funds."}/>}</p></div>}
             </div>
           </section>
         </section>}
 
         {tab === "traders" && <section className="admin-accounts-layout">
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Add a copy trader</h2><p>Set their profile, stats, rating, country, photo, and the price &amp; duration of a subscription.</p></div></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Add a copy trader"}/>}</h2><p>{<LocalizedText text={"Set their profile, stats, rating, country, photo, and the price & duration of a subscription."}/>}</p></div></div>
             <form className="admin-account-form" onSubmit={createTrader}>
-              <label className="input-label">Name</label>
-              <input className="text-input" placeholder="e.g. Alex Morgan" value={traderForm.name} onChange={e => setTraderForm({ ...traderForm, name: e.target.value })} maxLength={80}/>
-              <label className="input-label">Handle</label>
-              <input className="text-input" placeholder="e.g. @alex.trades" value={traderForm.handle} onChange={e => setTraderForm({ ...traderForm, handle: e.target.value })} maxLength={40}/>
-              <label className="input-label">Avatar color</label>
+              <label className="input-label">{<LocalizedText text={"Name"}/>}</label>
+              <input className="text-input" placeholder={translateUI("e.g. Alex Morgan")} value={traderForm.name} onChange={e => setTraderForm({ ...traderForm, name: e.target.value })} maxLength={80}/>
+              <label className="input-label">{<LocalizedText text={"Handle"}/>}</label>
+              <input className="text-input" placeholder={translateUI("e.g. @alex.trades")} value={traderForm.handle} onChange={e => setTraderForm({ ...traderForm, handle: e.target.value })} maxLength={40}/>
+              <label className="input-label">{<LocalizedText text={"Avatar color"}/>}</label>
               <div className="select-wrap"><select value={traderForm.avatarColor} onChange={e => setTraderForm({ ...traderForm, avatarColor: e.target.value as AvatarColor })}>{AVATAR_COLORS.map(c => <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>)}</select></div>
-              <label className="input-label">Focus</label>
-              <input className="text-input" placeholder="e.g. BTC, ETH" value={traderForm.focus} onChange={e => setTraderForm({ ...traderForm, focus: e.target.value })} maxLength={120}/>
-              <label className="input-label">Short bio</label>
-              <textarea className="text-input" rows={3} placeholder="A short bio shown on their card" value={traderForm.bio} onChange={e => setTraderForm({ ...traderForm, bio: e.target.value })} maxLength={200}/>
-              <label className="input-label">Risk level</label>
+              <label className="input-label">{<LocalizedText text={"Focus"}/>}</label>
+              <input className="text-input" placeholder={translateUI("e.g. BTC, ETH")} value={traderForm.focus} onChange={e => setTraderForm({ ...traderForm, focus: e.target.value })} maxLength={120}/>
+              <label className="input-label">{<LocalizedText text={"Short bio"}/>}</label>
+              <textarea className="text-input" rows={3} placeholder={translateUI("A short bio shown on their card")} value={traderForm.bio} onChange={e => setTraderForm({ ...traderForm, bio: e.target.value })} maxLength={200}/>
+              <label className="input-label">{<LocalizedText text={"Risk level"}/>}</label>
               <div className="select-wrap"><select value={traderForm.riskLevel} onChange={e => setTraderForm({ ...traderForm, riskLevel: e.target.value as RiskLevel })}>{RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-              <label className="input-label">Return % (30-day)</label>
-              <input className="text-input" type="number" step="0.01" placeholder="e.g. 42.80" value={traderForm.returnPercent} onChange={e => setTraderForm({ ...traderForm, returnPercent: e.target.value })}/>
-              <label className="input-label">Win rate %</label>
-              <input className="text-input" type="number" step="0.01" min="0" max="100" placeholder="e.g. 78" value={traderForm.winRate} onChange={e => setTraderForm({ ...traderForm, winRate: e.target.value })}/>
-              <label className="input-label">Subscription price (USD)</label>
-              <input className="text-input" type="number" step="0.01" min="0" placeholder="e.g. 49.00" value={traderForm.subscriptionAmount} onChange={e => setTraderForm({ ...traderForm, subscriptionAmount: e.target.value })}/>
+              <label className="input-label">{<LocalizedText text={"Return % (30-day)"}/>}</label>
+              <input className="text-input" type="number" step="0.01" placeholder={translateUI("e.g. 42.80")} value={traderForm.returnPercent} onChange={e => setTraderForm({ ...traderForm, returnPercent: e.target.value })}/>
+              <label className="input-label">{<LocalizedText text={"Win rate %"}/>}</label>
+              <input className="text-input" type="number" step="0.01" min="0" max="100" placeholder={translateUI("e.g. 78")} value={traderForm.winRate} onChange={e => setTraderForm({ ...traderForm, winRate: e.target.value })}/>
+              <label className="input-label">{<LocalizedText text={"Subscription price (USD)"}/>}</label>
+              <input className="text-input" type="number" step="0.01" min="0" placeholder={translateUI("e.g. 49.00")} value={traderForm.subscriptionAmount} onChange={e => setTraderForm({ ...traderForm, subscriptionAmount: e.target.value })}/>
               {currency !== "USD" && <StoredUsdHint typed={traderForm.subscriptionAmount} money={money}/>}
-              <label className="input-label">Subscription duration</label>
-              <div className="select-wrap"><select value={traderForm.subscriptionDurationDays} onChange={e => setTraderForm({ ...traderForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} days</option>)}</select></div>
-              <label className="input-label">Rating (0-5)</label>
-              <input className="text-input" type="number" step="0.1" min="0" max="5" placeholder="e.g. 4.8" value={traderForm.rating} onChange={e => setTraderForm({ ...traderForm, rating: e.target.value })}/>
-              <label className="input-label">Country</label>
+              <label className="input-label">{<LocalizedText text={"Subscription duration"}/>}</label>
+              <div className="select-wrap"><select value={traderForm.subscriptionDurationDays} onChange={e => setTraderForm({ ...traderForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} {<LocalizedText text={"days"}/>}</option>)}</select></div>
+              <label className="input-label">{<LocalizedText text={"Rating (0-5)"}/>}</label>
+              <input className="text-input" type="number" step="0.1" min="0" max="5" placeholder={translateUI("e.g. 4.8")} value={traderForm.rating} onChange={e => setTraderForm({ ...traderForm, rating: e.target.value })}/>
+              <label className="input-label">{<LocalizedText text={"Country"}/>}</label>
               <div className="select-wrap"><select value={traderForm.country} onChange={e => setTraderForm({ ...traderForm, country: e.target.value })}>{COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}</select></div>
-              <label className="input-label">Profile photo URL (optional)</label>
+              <label className="input-label">{<LocalizedText text={"Profile photo URL (optional)"}/>}</label>
               <div className="admin-photo-row">
                 {traderForm.photoUrl && <img src={traderForm.photoUrl} alt="" className="admin-photo-preview" onError={e => { (e.target as HTMLImageElement).style.visibility = "hidden"; }}/>}
-                <input className="text-input" type="url" placeholder="https://..." value={traderForm.photoUrl} onChange={e => setTraderForm({ ...traderForm, photoUrl: e.target.value })} maxLength={600}/>
+                <input className="text-input" type="url" placeholder={translateUI("https://...")} value={traderForm.photoUrl} onChange={e => setTraderForm({ ...traderForm, photoUrl: e.target.value })} maxLength={600}/>
               </div>
-              <button className="primary-btn full-btn" disabled={traderCreating}>{traderCreating ? "Adding..." : "Add trader"}</button>
+              <button className="primary-btn full-btn" disabled={traderCreating}>{traderCreating ? translateUI("Adding...") : translateUI("Add trader")}</button>
             </form>
           </section>
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Roster</h2><p>{traders.length} trader{traders.length === 1 ? "" : "s"} · active subscribers shown live</p></div><button className="outline-btn small" onClick={loadTraders}><RefreshCw size={13} className={tradersLoading ? "spin" : ""}/> Refresh</button></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Roster"}/>}</h2><p>{traders.length} {<LocalizedText text={"trader"}/>}{traders.length === 1 ? "" : translateUI("s")} {<LocalizedText text={"· active subscribers shown live"}/>}</p></div><button className="outline-btn small" onClick={loadTraders}><RefreshCw size={13} className={tradersLoading ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button></div>
             <div className="admin-account-list">
               {traders.map(t => <div className={`admin-account-item ${t.isActive ? "" : "inactive"}`} key={t.id}>
                 {editingTraderId === t.id ? <div className="admin-account-edit">
@@ -1351,69 +1354,69 @@ function AdminPageInner() {
                   <input className="text-input" value={editTraderForm.handle} onChange={e => setEditTraderForm({ ...editTraderForm, handle: e.target.value })} maxLength={40}/>
                   <div className="select-wrap"><select value={editTraderForm.avatarColor} onChange={e => setEditTraderForm({ ...editTraderForm, avatarColor: e.target.value as AvatarColor })}>{AVATAR_COLORS.map(c => <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>)}</select></div>
                   <input className="text-input" value={editTraderForm.focus} onChange={e => setEditTraderForm({ ...editTraderForm, focus: e.target.value })} maxLength={120}/>
-                  <textarea className="text-input" rows={3} value={editTraderForm.bio} onChange={e => setEditTraderForm({ ...editTraderForm, bio: e.target.value })} placeholder="Short bio" maxLength={200}/>
+                  <textarea className="text-input" rows={3} value={editTraderForm.bio} onChange={e => setEditTraderForm({ ...editTraderForm, bio: e.target.value })} placeholder={translateUI("Short bio")} maxLength={200}/>
                   <div className="select-wrap"><select value={editTraderForm.riskLevel} onChange={e => setEditTraderForm({ ...editTraderForm, riskLevel: e.target.value as RiskLevel })}>{RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-                  <input className="text-input" type="number" step="0.01" value={editTraderForm.returnPercent} onChange={e => setEditTraderForm({ ...editTraderForm, returnPercent: e.target.value })} placeholder="Return %"/>
-                  <input className="text-input" type="number" step="0.01" value={editTraderForm.winRate} onChange={e => setEditTraderForm({ ...editTraderForm, winRate: e.target.value })} placeholder="Win rate %"/>
-                  <input className="text-input" type="number" step="0.01" min="0" value={editTraderForm.subscriptionAmount} onChange={e => setEditTraderForm({ ...editTraderForm, subscriptionAmount: e.target.value })} placeholder="Subscription price (USD)"/>
-                  <div className="select-wrap"><select value={editTraderForm.subscriptionDurationDays} onChange={e => setEditTraderForm({ ...editTraderForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} days</option>)}</select></div>
-                  <input className="text-input" type="number" step="0.1" min="0" max="5" value={editTraderForm.rating} onChange={e => setEditTraderForm({ ...editTraderForm, rating: e.target.value })} placeholder="Rating (0-5)"/>
+                  <input className="text-input" type="number" step="0.01" value={editTraderForm.returnPercent} onChange={e => setEditTraderForm({ ...editTraderForm, returnPercent: e.target.value })} placeholder={translateUI("Return %")}/>
+                  <input className="text-input" type="number" step="0.01" value={editTraderForm.winRate} onChange={e => setEditTraderForm({ ...editTraderForm, winRate: e.target.value })} placeholder={translateUI("Win rate %")}/>
+                  <input className="text-input" type="number" step="0.01" min="0" value={editTraderForm.subscriptionAmount} onChange={e => setEditTraderForm({ ...editTraderForm, subscriptionAmount: e.target.value })} placeholder={translateUI("Subscription price (USD)")}/>
+                  <div className="select-wrap"><select value={editTraderForm.subscriptionDurationDays} onChange={e => setEditTraderForm({ ...editTraderForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} {<LocalizedText text={"days"}/>}</option>)}</select></div>
+                  <input className="text-input" type="number" step="0.1" min="0" max="5" value={editTraderForm.rating} onChange={e => setEditTraderForm({ ...editTraderForm, rating: e.target.value })} placeholder={translateUI("Rating (0-5)")}/>
                   <div className="select-wrap"><select value={editTraderForm.country} onChange={e => setEditTraderForm({ ...editTraderForm, country: e.target.value })}>{COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}</select></div>
                   <div className="admin-photo-row">
                     {editTraderForm.photoUrl && <img src={editTraderForm.photoUrl} alt="" className="admin-photo-preview" onError={e => { (e.target as HTMLImageElement).style.visibility = "hidden"; }}/>}
-                    <input className="text-input" type="url" value={editTraderForm.photoUrl} onChange={e => setEditTraderForm({ ...editTraderForm, photoUrl: e.target.value })} placeholder="Profile photo URL" maxLength={600}/>
+                    <input className="text-input" type="url" value={editTraderForm.photoUrl} onChange={e => setEditTraderForm({ ...editTraderForm, photoUrl: e.target.value })} placeholder={translateUI("Profile photo URL")} maxLength={600}/>
                   </div>
-                  <div className="admin-reject-buttons"><button className="outline-btn small" onClick={() => setEditingTraderId(null)}>Cancel</button><button className="primary-btn small" disabled={traderBusyId === t.id} onClick={() => saveTraderEdit(t.id)}>Save</button></div>
+                  <div className="admin-reject-buttons"><button className="outline-btn small" onClick={() => setEditingTraderId(null)}>{<LocalizedText text={"Cancel"}/>}</button><button className="primary-btn small" disabled={traderBusyId === t.id} onClick={() => saveTraderEdit(t.id)}>{<LocalizedText text={"Save"}/>}</button></div>
                 </div> : <>
-                  <div className="admin-account-item-top"><strong>{flagEmoji(t.country)} {t.name} <span style={{ color: "#9aa4b7", fontWeight: 500 }}>{t.handle}</span></strong><span className={`status-pill ${t.isActive ? "approved" : "rejected"}`}><span/>{t.isActive ? "Active" : "Hidden"}</span></div>
+                  <div className="admin-account-item-top"><strong>{flagEmoji(t.country)} {t.name} <span style={{ color: "#9aa4b7", fontWeight: 500 }}>{t.handle}</span></strong><span className={`status-pill ${t.isActive ? "approved" : "rejected"}`}><span/>{t.isActive ? translateUI("Active") : translateUI("Hidden")}</span></div>
                   <p>{t.bio}</p>
-                  <p>{t.focus} · {t.riskLevel} risk · {Number(t.returnPercent) >= 0 ? "+" : ""}{Number(t.returnPercent).toFixed(2)}% return · {Number(t.winRate).toFixed(0)}% win rate · ★ {Number(t.rating).toFixed(1)} · {money(Number(t.subscriptionAmount))}/{t.subscriptionDurationDays}d · {t.activeSubscribers} active subscriber{t.activeSubscribers === 1 ? "" : "s"}</p>
+                  <p>{t.focus} {<LocalizedText text={"·"}/>} {t.riskLevel} {<LocalizedText text={"risk ·"}/>} {Number(t.returnPercent) >= 0 ? "+" : ""}{Number(t.returnPercent).toFixed(2)}{<LocalizedText text={"% return ·"}/>} {Number(t.winRate).toFixed(0)}{<LocalizedText text={"% win rate · ★"}/>} {Number(t.rating).toFixed(1)} {<LocalizedText text={"·"}/>} {money(Number(t.subscriptionAmount))}{<LocalizedText text={"/"}/>}{t.subscriptionDurationDays}{<LocalizedText text={"d ·"}/>} {t.activeSubscribers} {<LocalizedText text={"active subscriber"}/>}{t.activeSubscribers === 1 ? "" : translateUI("s")}</p>
                   <div className="admin-account-item-actions">
-                    <button className="outline-btn small" onClick={() => { setEditingTraderId(t.id); setEditTraderForm({ name: t.name, handle: t.handle, avatarColor: t.avatarColor as AvatarColor, focus: t.focus, bio: t.bio, riskLevel: t.riskLevel as RiskLevel, returnPercent: t.returnPercent, winRate: t.winRate, subscriptionAmount: t.subscriptionAmount, subscriptionDurationDays: String(t.subscriptionDurationDays), rating: t.rating, country: t.country, photoUrl: t.photoUrl ?? "" }); }}>Edit</button>
-                    <button className="outline-btn small" disabled={traderBusyId === t.id} onClick={() => toggleTraderActive(t)}>{t.isActive ? "Deactivate" : "Activate"}</button>
-                    <button className="outline-btn small danger-outline" disabled={traderBusyId === t.id} onClick={() => removeTrader(t)}><Trash2 size={13}/> Delete</button>
+                    <button className="outline-btn small" onClick={() => { setEditingTraderId(t.id); setEditTraderForm({ name: t.name, handle: t.handle, avatarColor: t.avatarColor as AvatarColor, focus: t.focus, bio: t.bio, riskLevel: t.riskLevel as RiskLevel, returnPercent: t.returnPercent, winRate: t.winRate, subscriptionAmount: t.subscriptionAmount, subscriptionDurationDays: String(t.subscriptionDurationDays), rating: t.rating, country: t.country, photoUrl: t.photoUrl ?? "" }); }}>{<LocalizedText text={"Edit"}/>}</button>
+                    <button className="outline-btn small" disabled={traderBusyId === t.id} onClick={() => toggleTraderActive(t)}>{t.isActive ? translateUI("Deactivate") : translateUI("Activate")}</button>
+                    <button className="outline-btn small danger-outline" disabled={traderBusyId === t.id} onClick={() => removeTrader(t)}><Trash2 size={13}/> {<LocalizedText text={"Delete"}/>}</button>
                   </div>
                 </>}
               </div>)}
-              {traders.length === 0 && !tradersLoading && <div className="empty-state"><span className="empty-icon"><UsersRound size={27}/></span><h3>No traders yet</h3><p>Add one on the left to let users subscribe.</p></div>}
+              {traders.length === 0 && !tradersLoading && <div className="empty-state"><span className="empty-icon"><UsersRound size={27}/></span><h3>{<LocalizedText text={"No traders yet"}/>}</h3><p>{<LocalizedText text={"Add one on the left to let users subscribe."}/>}</p></div>}
             </div>
           </section>
         </section>}
 
         {tab === "bots" && <section className="admin-accounts-layout">
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Add a trading bot</h2><p>Set its strategy, risk, rating, country, photo, minimum allocation, and the price &amp; duration of a subscription.</p></div></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Add a trading bot"}/>}</h2><p>{<LocalizedText text={"Set its strategy, risk, rating, country, photo, minimum allocation, and the price & duration of a subscription."}/>}</p></div></div>
             <form className="admin-account-form" onSubmit={createBot}>
-              <label className="input-label">Name</label>
-              <input className="text-input" placeholder="e.g. BTC Grid Pro" value={botForm.name} onChange={e => setBotForm({ ...botForm, name: e.target.value })} maxLength={80}/>
-              <label className="input-label">Description</label>
-              <textarea className="text-input" rows={3} placeholder="Short description of what this bot does" value={botForm.description} onChange={e => setBotForm({ ...botForm, description: e.target.value })} maxLength={400}/>
-              <label className="input-label">Strategy</label>
+              <label className="input-label">{<LocalizedText text={"Name"}/>}</label>
+              <input className="text-input" placeholder={translateUI("e.g. BTC Grid Pro")} value={botForm.name} onChange={e => setBotForm({ ...botForm, name: e.target.value })} maxLength={80}/>
+              <label className="input-label">{<LocalizedText text={"Description"}/>}</label>
+              <textarea className="text-input" rows={3} placeholder={translateUI("Short description of what this bot does")} value={botForm.description} onChange={e => setBotForm({ ...botForm, description: e.target.value })} maxLength={400}/>
+              <label className="input-label">{<LocalizedText text={"Strategy"}/>}</label>
               <div className="select-wrap"><select value={botForm.strategy} onChange={e => setBotForm({ ...botForm, strategy: e.target.value as BotStrategy })}>{BOT_STRATEGIES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-              <label className="input-label">Risk level</label>
+              <label className="input-label">{<LocalizedText text={"Risk level"}/>}</label>
               <div className="select-wrap"><select value={botForm.riskLevel} onChange={e => setBotForm({ ...botForm, riskLevel: e.target.value as RiskLevel })}>{RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-              <label className="input-label">Minimum allocation (USD)</label>
-              <input className="text-input" type="number" step="0.01" min="0" placeholder="e.g. 100.00" value={botForm.minAllocation} onChange={e => setBotForm({ ...botForm, minAllocation: e.target.value })}/>
+              <label className="input-label">{<LocalizedText text={"Minimum allocation (USD)"}/>}</label>
+              <input className="text-input" type="number" step="0.01" min="0" placeholder={translateUI("e.g. 100.00")} value={botForm.minAllocation} onChange={e => setBotForm({ ...botForm, minAllocation: e.target.value })}/>
               {currency !== "USD" && <StoredUsdHint typed={botForm.minAllocation} money={money}/>}
-              <label className="input-label">Subscription price (USD)</label>
-              <input className="text-input" type="number" step="0.01" min="0" placeholder="e.g. 19.00" value={botForm.subscriptionAmount} onChange={e => setBotForm({ ...botForm, subscriptionAmount: e.target.value })}/>
+              <label className="input-label">{<LocalizedText text={"Subscription price (USD)"}/>}</label>
+              <input className="text-input" type="number" step="0.01" min="0" placeholder={translateUI("e.g. 19.00")} value={botForm.subscriptionAmount} onChange={e => setBotForm({ ...botForm, subscriptionAmount: e.target.value })}/>
               {currency !== "USD" && <StoredUsdHint typed={botForm.subscriptionAmount} money={money}/>}
-              <label className="input-label">Subscription duration</label>
-              <div className="select-wrap"><select value={botForm.subscriptionDurationDays} onChange={e => setBotForm({ ...botForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} days</option>)}</select></div>
-              <label className="input-label">Rating (0-5)</label>
-              <input className="text-input" type="number" step="0.1" min="0" max="5" placeholder="e.g. 4.8" value={botForm.rating} onChange={e => setBotForm({ ...botForm, rating: e.target.value })}/>
-              <label className="input-label">Country</label>
+              <label className="input-label">{<LocalizedText text={"Subscription duration"}/>}</label>
+              <div className="select-wrap"><select value={botForm.subscriptionDurationDays} onChange={e => setBotForm({ ...botForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} {<LocalizedText text={"days"}/>}</option>)}</select></div>
+              <label className="input-label">{<LocalizedText text={"Rating (0-5)"}/>}</label>
+              <input className="text-input" type="number" step="0.1" min="0" max="5" placeholder={translateUI("e.g. 4.8")} value={botForm.rating} onChange={e => setBotForm({ ...botForm, rating: e.target.value })}/>
+              <label className="input-label">{<LocalizedText text={"Country"}/>}</label>
               <div className="select-wrap"><select value={botForm.country} onChange={e => setBotForm({ ...botForm, country: e.target.value })}>{COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}</select></div>
-              <label className="input-label">Profile photo URL (optional)</label>
+              <label className="input-label">{<LocalizedText text={"Profile photo URL (optional)"}/>}</label>
               <div className="admin-photo-row">
                 {botForm.photoUrl && <img src={botForm.photoUrl} alt="" className="admin-photo-preview" onError={e => { (e.target as HTMLImageElement).style.visibility = "hidden"; }}/>}
-                <input className="text-input" type="url" placeholder="https://..." value={botForm.photoUrl} onChange={e => setBotForm({ ...botForm, photoUrl: e.target.value })} maxLength={600}/>
+                <input className="text-input" type="url" placeholder={translateUI("https://...")} value={botForm.photoUrl} onChange={e => setBotForm({ ...botForm, photoUrl: e.target.value })} maxLength={600}/>
               </div>
-              <button className="primary-btn full-btn" disabled={botCreating}>{botCreating ? "Adding..." : "Add bot"}</button>
+              <button className="primary-btn full-btn" disabled={botCreating}>{botCreating ? translateUI("Adding...") : translateUI("Add bot")}</button>
             </form>
           </section>
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Catalog</h2><p>{botRows.length} bot{botRows.length === 1 ? "" : "s"} · active subscribers shown live</p></div><button className="outline-btn small" onClick={loadBots}><RefreshCw size={13} className={botsLoading ? "spin" : ""}/> Refresh</button></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Catalog"}/>}</h2><p>{botRows.length} {<LocalizedText text={"bot"}/>}{botRows.length === 1 ? "" : translateUI("s")} {<LocalizedText text={"· active subscribers shown live"}/>}</p></div><button className="outline-btn small" onClick={loadBots}><RefreshCw size={13} className={botsLoading ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button></div>
             <div className="admin-account-list">
               {botRows.map(b => <div className={`admin-account-item ${b.isActive ? "" : "inactive"}`} key={b.id}>
                 {editingBotId === b.id ? <div className="admin-account-edit">
@@ -1421,96 +1424,96 @@ function AdminPageInner() {
                   <textarea className="text-input" rows={3} value={editBotForm.description} onChange={e => setEditBotForm({ ...editBotForm, description: e.target.value })} maxLength={400}/>
                   <div className="select-wrap"><select value={editBotForm.strategy} onChange={e => setEditBotForm({ ...editBotForm, strategy: e.target.value as BotStrategy })}>{BOT_STRATEGIES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                   <div className="select-wrap"><select value={editBotForm.riskLevel} onChange={e => setEditBotForm({ ...editBotForm, riskLevel: e.target.value as RiskLevel })}>{RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-                  <input className="text-input" type="number" step="0.01" min="0" value={editBotForm.minAllocation} onChange={e => setEditBotForm({ ...editBotForm, minAllocation: e.target.value })} placeholder="Minimum allocation (USD)"/>
-                  <input className="text-input" type="number" step="0.01" min="0" value={editBotForm.subscriptionAmount} onChange={e => setEditBotForm({ ...editBotForm, subscriptionAmount: e.target.value })} placeholder="Subscription price (USD)"/>
-                  <div className="select-wrap"><select value={editBotForm.subscriptionDurationDays} onChange={e => setEditBotForm({ ...editBotForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} days</option>)}</select></div>
-                  <input className="text-input" type="number" step="0.1" min="0" max="5" value={editBotForm.rating} onChange={e => setEditBotForm({ ...editBotForm, rating: e.target.value })} placeholder="Rating (0-5)"/>
+                  <input className="text-input" type="number" step="0.01" min="0" value={editBotForm.minAllocation} onChange={e => setEditBotForm({ ...editBotForm, minAllocation: e.target.value })} placeholder={translateUI("Minimum allocation (USD)")}/>
+                  <input className="text-input" type="number" step="0.01" min="0" value={editBotForm.subscriptionAmount} onChange={e => setEditBotForm({ ...editBotForm, subscriptionAmount: e.target.value })} placeholder={translateUI("Subscription price (USD)")}/>
+                  <div className="select-wrap"><select value={editBotForm.subscriptionDurationDays} onChange={e => setEditBotForm({ ...editBotForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} {<LocalizedText text={"days"}/>}</option>)}</select></div>
+                  <input className="text-input" type="number" step="0.1" min="0" max="5" value={editBotForm.rating} onChange={e => setEditBotForm({ ...editBotForm, rating: e.target.value })} placeholder={translateUI("Rating (0-5)")}/>
                   <div className="select-wrap"><select value={editBotForm.country} onChange={e => setEditBotForm({ ...editBotForm, country: e.target.value })}>{COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}</select></div>
                   <div className="admin-photo-row">
                     {editBotForm.photoUrl && <img src={editBotForm.photoUrl} alt="" className="admin-photo-preview" onError={e => { (e.target as HTMLImageElement).style.visibility = "hidden"; }}/>}
-                    <input className="text-input" type="url" value={editBotForm.photoUrl} onChange={e => setEditBotForm({ ...editBotForm, photoUrl: e.target.value })} placeholder="Profile photo URL" maxLength={600}/>
+                    <input className="text-input" type="url" value={editBotForm.photoUrl} onChange={e => setEditBotForm({ ...editBotForm, photoUrl: e.target.value })} placeholder={translateUI("Profile photo URL")} maxLength={600}/>
                   </div>
-                  <div className="admin-reject-buttons"><button className="outline-btn small" onClick={() => setEditingBotId(null)}>Cancel</button><button className="primary-btn small" disabled={botBusyId === b.id} onClick={() => saveBotEdit(b.id)}>Save</button></div>
+                  <div className="admin-reject-buttons"><button className="outline-btn small" onClick={() => setEditingBotId(null)}>{<LocalizedText text={"Cancel"}/>}</button><button className="primary-btn small" disabled={botBusyId === b.id} onClick={() => saveBotEdit(b.id)}>{<LocalizedText text={"Save"}/>}</button></div>
                 </div> : <>
-                  <div className="admin-account-item-top"><strong>{flagEmoji(b.country)} {b.name}</strong><span className={`status-pill ${b.isActive ? "approved" : "rejected"}`}><span/>{b.isActive ? "Active" : "Hidden"}</span></div>
+                  <div className="admin-account-item-top"><strong>{flagEmoji(b.country)} {b.name}</strong><span className={`status-pill ${b.isActive ? "approved" : "rejected"}`}><span/>{b.isActive ? translateUI("Active") : translateUI("Hidden")}</span></div>
                   <p>{b.description}</p>
-                  <p>{b.strategy} · {b.riskLevel} risk · min {money(Number(b.minAllocation))} · ★ {Number(b.rating).toFixed(1)} · {money(Number(b.subscriptionAmount))}/{b.subscriptionDurationDays}d · {b.activeSubscribers} active subscriber{b.activeSubscribers === 1 ? "" : "s"}</p>
+                  <p>{b.strategy} {<LocalizedText text={"·"}/>} {b.riskLevel} {<LocalizedText text={"risk · min"}/>} {money(Number(b.minAllocation))} {<LocalizedText text={"· ★"}/>} {Number(b.rating).toFixed(1)} {<LocalizedText text={"·"}/>} {money(Number(b.subscriptionAmount))}{<LocalizedText text={"/"}/>}{b.subscriptionDurationDays}{<LocalizedText text={"d ·"}/>} {b.activeSubscribers} {<LocalizedText text={"active subscriber"}/>}{b.activeSubscribers === 1 ? "" : translateUI("s")}</p>
                   <div className="admin-account-item-actions">
-                    <button className="outline-btn small" onClick={() => { setEditingBotId(b.id); setEditBotForm({ name: b.name, description: b.description, strategy: b.strategy as BotStrategy, riskLevel: b.riskLevel as RiskLevel, minAllocation: b.minAllocation, subscriptionAmount: b.subscriptionAmount, subscriptionDurationDays: String(b.subscriptionDurationDays), rating: b.rating, country: b.country, photoUrl: b.photoUrl ?? "" }); }}>Edit</button>
-                    <button className="outline-btn small" disabled={botBusyId === b.id} onClick={() => toggleBotActive(b)}>{b.isActive ? "Deactivate" : "Activate"}</button>
-                    <button className="outline-btn small danger-outline" disabled={botBusyId === b.id} onClick={() => removeBot(b)}><Trash2 size={13}/> Delete</button>
+                    <button className="outline-btn small" onClick={() => { setEditingBotId(b.id); setEditBotForm({ name: b.name, description: b.description, strategy: b.strategy as BotStrategy, riskLevel: b.riskLevel as RiskLevel, minAllocation: b.minAllocation, subscriptionAmount: b.subscriptionAmount, subscriptionDurationDays: String(b.subscriptionDurationDays), rating: b.rating, country: b.country, photoUrl: b.photoUrl ?? "" }); }}>{<LocalizedText text={"Edit"}/>}</button>
+                    <button className="outline-btn small" disabled={botBusyId === b.id} onClick={() => toggleBotActive(b)}>{b.isActive ? translateUI("Deactivate") : translateUI("Activate")}</button>
+                    <button className="outline-btn small danger-outline" disabled={botBusyId === b.id} onClick={() => removeBot(b)}><Trash2 size={13}/> {<LocalizedText text={"Delete"}/>}</button>
                   </div>
                 </>}
               </div>)}
-              {botRows.length === 0 && !botsLoading && <div className="empty-state"><span className="empty-icon"><Bot size={27}/></span><h3>No bots yet</h3><p>Add one on the left to let users subscribe.</p></div>}
+              {botRows.length === 0 && !botsLoading && <div className="empty-state"><span className="empty-icon"><Bot size={27}/></span><h3>{<LocalizedText text={"No bots yet"}/>}</h3><p>{<LocalizedText text={"Add one on the left to let users subscribe."}/>}</p></div>}
             </div>
           </section>
         </section>}
 
         {tab === "plans" && <section className="admin-accounts-layout">
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Add a plan</h2><p>Set its weekly price and feature list. Users subscribe for a 7-day (weekly) window.</p></div></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Add a plan"}/>}</h2><p>{<LocalizedText text={"Set its weekly price and feature list. Users subscribe for a 7-day (weekly) window."}/>}</p></div></div>
             <form className="admin-account-form" onSubmit={createPlan}>
-              <label className="input-label">Name</label>
-              <input className="text-input" placeholder="e.g. Pro" value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })} maxLength={60}/>
-              <label className="input-label">Description</label>
-              <textarea className="text-input" rows={2} placeholder="Short tagline for this plan" value={planForm.description} onChange={e => setPlanForm({ ...planForm, description: e.target.value })} maxLength={300}/>
-              <label className="input-label">Price per week (USD)</label>
-              <input className="text-input" type="number" step="0.01" min="0" placeholder="e.g. 15.00" value={planForm.priceWeekly} onChange={e => setPlanForm({ ...planForm, priceWeekly: e.target.value })}/>
+              <label className="input-label">{<LocalizedText text={"Name"}/>}</label>
+              <input className="text-input" placeholder={translateUI("e.g. Pro")} value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })} maxLength={60}/>
+              <label className="input-label">{<LocalizedText text={"Description"}/>}</label>
+              <textarea className="text-input" rows={2} placeholder={translateUI("Short tagline for this plan")} value={planForm.description} onChange={e => setPlanForm({ ...planForm, description: e.target.value })} maxLength={300}/>
+              <label className="input-label">{<LocalizedText text={"Price per week (USD)"}/>}</label>
+              <input className="text-input" type="number" step="0.01" min="0" placeholder={translateUI("e.g. 15.00")} value={planForm.priceWeekly} onChange={e => setPlanForm({ ...planForm, priceWeekly: e.target.value })}/>
               {currency !== "USD" && <StoredUsdHint typed={planForm.priceWeekly} money={money}/>}
-              <label className="input-label">Features (one per line)</label>
+              <label className="input-label">{<LocalizedText text={"Features (one per line)"}/>}</label>
               <textarea className="text-input" rows={5} placeholder={"Trading bot subscriptions\nCopy trading subscriptions\nAdvanced market signals"} value={planForm.features} onChange={e => setPlanForm({ ...planForm, features: e.target.value })}/>
-              <label className="input-label">Sort order</label>
-              <input className="text-input" type="number" step="1" placeholder="0" value={planForm.sortOrder} onChange={e => setPlanForm({ ...planForm, sortOrder: e.target.value })}/>
-              <label className="checkbox-row"><input type="checkbox" checked={planForm.isFeatured} onChange={e => setPlanForm({ ...planForm, isFeatured: e.target.checked })}/> Featured (highlighted) plan</label>
-              <button className="primary-btn full-btn" disabled={planCreating}>{planCreating ? "Adding..." : "Add plan"}</button>
+              <label className="input-label">{<LocalizedText text={"Sort order"}/>}</label>
+              <input className="text-input" type="number" step="1" placeholder={translateUI("0")} value={planForm.sortOrder} onChange={e => setPlanForm({ ...planForm, sortOrder: e.target.value })}/>
+              <label className="checkbox-row"><input type="checkbox" checked={planForm.isFeatured} onChange={e => setPlanForm({ ...planForm, isFeatured: e.target.checked })}/> {<LocalizedText text={"Featured (highlighted) plan"}/>}</label>
+              <button className="primary-btn full-btn" disabled={planCreating}>{planCreating ? translateUI("Adding...") : translateUI("Add plan")}</button>
             </form>
           </section>
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Catalog</h2><p>{planRows.length} plan{planRows.length === 1 ? "" : "s"} · active subscribers shown live</p></div><button className="outline-btn small" onClick={loadPlansAdmin}><RefreshCw size={13} className={plansLoadingAdmin ? "spin" : ""}/> Refresh</button></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Catalog"}/>}</h2><p>{planRows.length} {<LocalizedText text={"plan"}/>}{planRows.length === 1 ? "" : translateUI("s")} {<LocalizedText text={"· active subscribers shown live"}/>}</p></div><button className="outline-btn small" onClick={loadPlansAdmin}><RefreshCw size={13} className={plansLoadingAdmin ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button></div>
             <div className="admin-account-list">
               {planRows.map(p => <div className={`admin-account-item ${p.isActive ? "" : "inactive"}`} key={p.id}>
                 {editingPlanId === p.id ? <div className="admin-account-edit">
                   <input className="text-input" value={editPlanForm.name} onChange={e => setEditPlanForm({ ...editPlanForm, name: e.target.value })} maxLength={60}/>
                   <textarea className="text-input" rows={2} value={editPlanForm.description} onChange={e => setEditPlanForm({ ...editPlanForm, description: e.target.value })} maxLength={300}/>
-                  <input className="text-input" type="number" step="0.01" min="0" value={editPlanForm.priceWeekly} onChange={e => setEditPlanForm({ ...editPlanForm, priceWeekly: e.target.value })} placeholder="Price per week (USD)"/>
-                  <textarea className="text-input" rows={5} value={editPlanForm.features} onChange={e => setEditPlanForm({ ...editPlanForm, features: e.target.value })} placeholder="Features (one per line)"/>
-                  <input className="text-input" type="number" step="1" value={editPlanForm.sortOrder} onChange={e => setEditPlanForm({ ...editPlanForm, sortOrder: e.target.value })} placeholder="Sort order"/>
-                  <label className="checkbox-row"><input type="checkbox" checked={editPlanForm.isFeatured} onChange={e => setEditPlanForm({ ...editPlanForm, isFeatured: e.target.checked })}/> Featured (highlighted) plan</label>
-                  <div className="admin-reject-buttons"><button className="outline-btn small" onClick={() => setEditingPlanId(null)}>Cancel</button><button className="primary-btn small" disabled={planBusyId === p.id} onClick={() => savePlanEdit(p.id)}>Save</button></div>
+                  <input className="text-input" type="number" step="0.01" min="0" value={editPlanForm.priceWeekly} onChange={e => setEditPlanForm({ ...editPlanForm, priceWeekly: e.target.value })} placeholder={translateUI("Price per week (USD)")}/>
+                  <textarea className="text-input" rows={5} value={editPlanForm.features} onChange={e => setEditPlanForm({ ...editPlanForm, features: e.target.value })} placeholder={translateUI("Features (one per line)")}/>
+                  <input className="text-input" type="number" step="1" value={editPlanForm.sortOrder} onChange={e => setEditPlanForm({ ...editPlanForm, sortOrder: e.target.value })} placeholder={translateUI("Sort order")}/>
+                  <label className="checkbox-row"><input type="checkbox" checked={editPlanForm.isFeatured} onChange={e => setEditPlanForm({ ...editPlanForm, isFeatured: e.target.checked })}/> {<LocalizedText text={"Featured (highlighted) plan"}/>}</label>
+                  <div className="admin-reject-buttons"><button className="outline-btn small" onClick={() => setEditingPlanId(null)}>{<LocalizedText text={"Cancel"}/>}</button><button className="primary-btn small" disabled={planBusyId === p.id} onClick={() => savePlanEdit(p.id)}>{<LocalizedText text={"Save"}/>}</button></div>
                 </div> : <>
-                  <div className="admin-account-item-top"><strong>{p.name}{p.isFeatured && <span style={{ marginLeft: 8, color: "var(--blue)" }}><Sparkles size={13}/></span>}</strong><span className={`status-pill ${p.isActive ? "approved" : "rejected"}`}><span/>{p.isActive ? "Active" : "Hidden"}</span></div>
+                  <div className="admin-account-item-top"><strong>{p.name}{p.isFeatured && <span style={{ marginLeft: 8, color: "var(--blue)" }}><Sparkles size={13}/></span>}</strong><span className={`status-pill ${p.isActive ? "approved" : "rejected"}`}><span/>{p.isActive ? translateUI("Active") : translateUI("Hidden")}</span></div>
                   <p>{p.description}</p>
-                  <p>{money(Number(p.priceWeekly))}/week · sort {p.sortOrder} · {p.activeSubscribers} active subscriber{p.activeSubscribers === 1 ? "" : "s"}</p>
+                  <p>{money(Number(p.priceWeekly))}{<LocalizedText text={"/week · sort"}/>} {p.sortOrder} {<LocalizedText text={"·"}/>} {p.activeSubscribers} {<LocalizedText text={"active subscriber"}/>}{p.activeSubscribers === 1 ? "" : translateUI("s")}</p>
                   <p style={{ color: "#9aa4b7" }}>{p.features.join(" · ")}</p>
                   <div className="admin-account-item-actions">
-                    <button className="outline-btn small" onClick={() => { setEditingPlanId(p.id); setEditPlanForm({ name: p.name, description: p.description, priceWeekly: p.priceWeekly, features: p.features.join("\n"), isFeatured: p.isFeatured, sortOrder: p.sortOrder }); }}>Edit</button>
-                    <button className="outline-btn small" disabled={planBusyId === p.id} onClick={() => togglePlanActive(p)}>{p.isActive ? "Deactivate" : "Activate"}</button>
-                    <button className="outline-btn small danger-outline" disabled={planBusyId === p.id} onClick={() => removePlan(p)}><Trash2 size={13}/> Delete</button>
+                    <button className="outline-btn small" onClick={() => { setEditingPlanId(p.id); setEditPlanForm({ name: p.name, description: p.description, priceWeekly: p.priceWeekly, features: p.features.join("\n"), isFeatured: p.isFeatured, sortOrder: p.sortOrder }); }}>{<LocalizedText text={"Edit"}/>}</button>
+                    <button className="outline-btn small" disabled={planBusyId === p.id} onClick={() => togglePlanActive(p)}>{p.isActive ? translateUI("Deactivate") : translateUI("Activate")}</button>
+                    <button className="outline-btn small danger-outline" disabled={planBusyId === p.id} onClick={() => removePlan(p)}><Trash2 size={13}/> {<LocalizedText text={"Delete"}/>}</button>
                   </div>
                 </>}
               </div>)}
-              {planRows.length === 0 && !plansLoadingAdmin && <div className="empty-state"><span className="empty-icon"><Plus size={27}/></span><h3>No plans yet</h3><p>Add one on the left to let users subscribe.</p></div>}
+              {planRows.length === 0 && !plansLoadingAdmin && <div className="empty-state"><span className="empty-icon"><Plus size={27}/></span><h3>{<LocalizedText text={"No plans yet"}/>}</h3><p>{<LocalizedText text={"Add one on the left to let users subscribe."}/>}</p></div>}
             </div>
           </section>
         </section>}
 
         {tab === "broadcast" && <section className="admin-accounts-layout">
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>Broadcast an announcement</h2><p>Sends an in-app notification (and email, unless the user has email notifications off) to every real user account. Demo accounts are skipped.</p></div></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Broadcast an announcement"}/>}</h2><p>{<LocalizedText text={"Sends an in-app notification (and email, unless the user has email notifications off) to every real user account. Demo accounts are skipped."}/>}</p></div></div>
             <form className="admin-account-form" onSubmit={sendBroadcast}>
-              <label className="input-label">Title</label>
-              <input className="text-input" placeholder="e.g. Scheduled maintenance tonight" value={broadcastForm.title} onChange={e => setBroadcastForm({ ...broadcastForm, title: e.target.value })} maxLength={120}/>
-              <label className="input-label">Message</label>
-              <textarea className="text-input" rows={5} placeholder="Write the announcement body here..." value={broadcastForm.message} onChange={e => setBroadcastForm({ ...broadcastForm, message: e.target.value })} maxLength={2000}/>
-              <button className="primary-btn full-btn" disabled={broadcastSending || !broadcastForm.title.trim() || !broadcastForm.message.trim()}>{broadcastSending ? "Sending..." : "Send to all users"}</button>
-              {broadcastResult && <p style={{ color: "var(--green)", fontSize: 13, marginTop: 4 }}>Sent to {broadcastResult} user{broadcastResult === 1 ? "" : "s"}.</p>}
+              <label className="input-label">{<LocalizedText text={"Title"}/>}</label>
+              <input className="text-input" placeholder={translateUI("e.g. Scheduled maintenance tonight")} value={broadcastForm.title} onChange={e => setBroadcastForm({ ...broadcastForm, title: e.target.value })} maxLength={120}/>
+              <label className="input-label">{<LocalizedText text={"Message"}/>}</label>
+              <textarea className="text-input" rows={5} placeholder={translateUI("Write the announcement body here...")} value={broadcastForm.message} onChange={e => setBroadcastForm({ ...broadcastForm, message: e.target.value })} maxLength={2000}/>
+              <button className="primary-btn full-btn" disabled={broadcastSending || !broadcastForm.title.trim() || !broadcastForm.message.trim()}>{broadcastSending ? translateUI("Sending...") : translateUI("Send to all users")}</button>
+              {broadcastResult && <p style={{ color: "var(--green)", fontSize: 13, marginTop: 4 }}>{<LocalizedText text={"Sent to"}/>} {broadcastResult} {<LocalizedText text={"user"}/>}{broadcastResult === 1 ? "" : translateUI("s")}{<LocalizedText text={"."}/>}</p>}
             </form>
           </section>
         </section>}
       </main>
     </div>
-    {toast && <div className={`toast ${toast.error ? "error" : ""}`}><span>{toast.error ? <X size={17}/> : <Check size={17}/>}</span>{toast.text}<button onClick={() => setToast(null)}><X size={15}/></button></div>}
+    {toast && <div className={`toast ${toast.error ? "error" : ""}`}><span>{toast.error ? <X size={17}/> : <Check size={17}/>}</span><LocalizedText text={toast.text}/><button onClick={() => setToast(null)}><X size={15}/></button></div>}
   </div>;
 }
 

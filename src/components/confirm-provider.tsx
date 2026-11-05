@@ -1,4 +1,5 @@
 "use client";
+import { LocalizedText } from "@/components/i18n-provider";
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { AlertTriangle, HelpCircle } from "lucide-react";
 
@@ -51,18 +52,18 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <div className={`confirm-modal-icon${current.danger ? " danger" : ""}`}>
               {current.danger ? <AlertTriangle size={22} /> : <HelpCircle size={22} />}
             </div>
-            <h2 id="confirm-modal-title">{current.title}</h2>
-            {current.message && <p>{current.message}</p>}
+            <h2 id="confirm-modal-title"><LocalizedText text={current.title}/></h2>
+            {current.message && <p><LocalizedText text={current.message}/></p>}
             <div className="confirm-modal-actions">
               <button type="button" className="outline-btn" onClick={() => respond(false)} autoFocus>
-                {current.cancelLabel || "Cancel"}
+                <LocalizedText text={current.cancelLabel || "Cancel"}/>
               </button>
               <button
                 type="button"
                 className={current.danger ? "primary-btn reject-btn" : "primary-btn"}
                 onClick={() => respond(true)}
               >
-                {current.confirmLabel || "Confirm"}
+                <LocalizedText text={current.confirmLabel || "Confirm"}/>
               </button>
             </div>
           </div>

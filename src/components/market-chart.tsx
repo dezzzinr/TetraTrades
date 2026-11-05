@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedText } from "@/components/i18n-provider";
 import { useId, useState, type MouseEvent } from "react";
 import { Activity } from "lucide-react";
 import { type ChartPeriod, type ChartPoint } from "@/lib/market";
@@ -27,10 +28,10 @@ export default function MarketChart({ points, period, status, label, currency = 
   const axisPrice = (value: number) => (value >= 1000 ? formatCompactMoney(value, currency, rate) : marketPrice(value));
   const id = useId().replaceAll(":", "");
   if (status === "loading") {
-    return <div className="live-chart-state chart-loading"><div className="chart-skeleton"/><span>Loading historical market data…</span></div>;
+    return <div className="live-chart-state chart-loading"><div className="chart-skeleton"/><span>{<LocalizedText text={"Loading historical market data…"}/>}</span></div>;
   }
   if (status === "error" || points.length < 2) {
-    return <div className="live-chart-state"><span className="chart-empty-icon"><Activity size={20}/></span><strong>Chart unavailable</strong><span>Historical prices could not be loaded right now.</span></div>;
+    return <div className="live-chart-state"><span className="chart-empty-icon"><Activity size={20}/></span><strong>{<LocalizedText text={"Chart unavailable"}/>}</strong><span>{<LocalizedText text={"Historical prices could not be loaded right now."}/>}</span></div>;
   }
 
   const values = points.map((point) => point.price);

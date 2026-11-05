@@ -1,10 +1,9 @@
 "use client";
 
+import { LocalizedText, useLanguage } from "@/components/i18n-provider";
 import { useEffect, useState } from "react";
 import { ArrowRight, LockKeyhole, UserRound, X } from "lucide-react";
 import { COUNTRIES, currencyForCountry } from "@/lib/countries";
-import { useLanguage } from "@/components/i18n-provider";
-
 type Props = {
   onClose: () => void;
   onSwitchToLogin: () => void;
@@ -12,6 +11,7 @@ type Props = {
 };
 
 export default function RegisterModal({ onClose, onSwitchToLogin, onRegistered }: Props) {
+  const { t: translateUI } = useLanguage();
   const { t } = useLanguage();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -86,7 +86,7 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegistered }
   return (
     <div className="modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="register-modal">
-        <button className="modal-close" onClick={onClose} aria-label="Close"><X size={20} /></button>
+        <button className="modal-close" onClick={onClose} aria-label={translateUI("Close")}><X size={20} /></button>
         <div className="modal-brand"><div className="brand-icon"><UserRound size={20} strokeWidth={3} /></div>{t("Create your account")}</div>
         <h2>{t("Join Tetratrades")}</h2>
         <p>{t("Your trading journey starts here. Just the basics for now — you can add your photo, username, date of birth, and more anytime from your Profile page.")}</p>
@@ -94,22 +94,22 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegistered }
         <form onSubmit={submit}>
           <div className="form-section">
             <div className="form-grid">
-              <div className="form-field"><label className="input-label">{t("Full Name")} *</label><input className="text-input" placeholder="Alex Morgan" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} /></div>
-              <div className="form-field"><label className="input-label">{t("Email Address")} *</label><input className="text-input" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
-              <div className="form-field"><label className="input-label">{t("Phone Number")} *</label><input className="text-input" type="tel" placeholder={selectedCountry ? `${selectedCountry.dial} ...` : "+1 555 123 4567"} value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>
+              <div className="form-field"><label className="input-label">{t("Full Name")} {<LocalizedText text={"*"}/>}</label><input className="text-input" placeholder={translateUI("Alex Morgan")} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} /></div>
+              <div className="form-field"><label className="input-label">{t("Email Address")} {<LocalizedText text={"*"}/>}</label><input className="text-input" type="email" placeholder={translateUI("you@example.com")} value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
+              <div className="form-field"><label className="input-label">{t("Phone Number")} {<LocalizedText text={"*"}/>}</label><input className="text-input" type="tel" placeholder={selectedCountry ? `${selectedCountry.dial} ...` : "+1 555 123 4567"} value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>
               <div className="form-field">
-                <label className="input-label">{t("Country")} *</label>
+                <label className="input-label">{t("Country")} {<LocalizedText text={"*"}/>}</label>
                 <div className="select-wrap"><select value={country} onChange={(e) => setCountry(e.target.value)} required><option value="">{t("Select your country")}</option>{COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></div>
                 {selectedCountry && <p className="form-hint">{t("Your balances will display in")} {currencyForCountry(selectedCountry.code)} {t("by default — you can change this later in your profile.")}</p>}
               </div>
-              <div className="form-field"><label className="input-label">{t("Password")} *</label><input className="text-input" type="password" placeholder="At least 8 characters" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} /></div>
-              <div className="form-field"><label className="input-label">{t("Confirm Password")} *</label><input className="text-input" type="password" placeholder={t("Re-enter your password")} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} /></div>
+              <div className="form-field"><label className="input-label">{t("Password")} {<LocalizedText text={"*"}/>}</label><input className="text-input" type="password" placeholder={translateUI("At least 8 characters")} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} /></div>
+              <div className="form-field"><label className="input-label">{t("Confirm Password")} {<LocalizedText text={"*"}/>}</label><input className="text-input" type="password" placeholder={translateUI("Re-enter your password")} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} /></div>
             </div>
           </div>
 
           <div className="register-checkboxes">
-            <label className="checkbox-row"><input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} required /> {t("I agree to the")} <a href="#" onClick={(e) => e.preventDefault()}>{t("Terms & Conditions")}</a> *</label>
-            <label className="checkbox-row"><input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} required /> {t("I agree to the")} <a href="#" onClick={(e) => e.preventDefault()}>{t("Privacy Policy")}</a> *</label>
+            <label className="checkbox-row"><input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} required /> {t("I agree to the")} <a href="#" onClick={(e) => e.preventDefault()}>{t("Terms & Conditions")}</a> {<LocalizedText text={"*"}/>}</label>
+            <label className="checkbox-row"><input type="checkbox" checked={privacyAccepted} onChange={(e) => setPrivacyAccepted(e.target.checked)} required /> {t("I agree to the")} <a href="#" onClick={(e) => e.preventDefault()}>{t("Privacy Policy")}</a> {<LocalizedText text={"*"}/>}</label>
           </div>
 
           {error && <p className="form-error-text">{error}</p>}

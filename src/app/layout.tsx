@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import "./market.css";
 import SmartsuppWidget from "@/components/smartsupp-widget";
+import { LanguageProvider } from "@/components/i18n-provider";
 
 export const metadata: Metadata = {
   title: "Tetratrades — Crypto Trading",
@@ -10,5 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return <html lang="en"><body suppressHydrationWarning>{children}<SmartsuppWidget/></body></html>;
+  return <html lang="en"><body suppressHydrationWarning><LanguageProvider>{children}<SmartsuppWidget/></LanguageProvider></body></html>;
 }

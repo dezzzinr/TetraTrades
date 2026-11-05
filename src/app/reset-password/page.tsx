@@ -1,5 +1,6 @@
 "use client";
 
+import { LocalizedText, useLanguage } from "@/components/i18n-provider";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +9,8 @@ import { ConfirmProvider, useConfirm } from "@/components/confirm-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 
 function ResetPasswordForm() {
+  const { t: translateUI } = useLanguage();
+  const { t } = useLanguage();
   const params = useSearchParams();
   const confirm = useConfirm();
   const token = params.get("token") ?? "";
@@ -39,24 +42,24 @@ function ResetPasswordForm() {
 
   return (
     <div className="auth-modal" style={{ margin: "0 auto" }}>
-      <div className="modal-brand"><div className="brand-icon"><KeyRound size={20} strokeWidth={3} /></div>Tetra<span>Trades</span></div>
+      <div className="modal-brand"><div className="brand-icon"><KeyRound size={20} strokeWidth={3} /></div>{<LocalizedText text={"Tetra"}/>}<span>{<LocalizedText text={"Trades"}/>}</span></div>
       {!done ? <>
-        <h2>Reset your password</h2>
-        <p>{token ? "Choose a new password for your account." : "This link is missing its reset token. Make sure you opened the full link from your email, or request a new one from the sign-in page."}</p>
+        <h2>{<LocalizedText text={"Reset your password"}/>}</h2>
+        <p>{token ? translateUI("Choose a new password for your account.") : translateUI("This link is missing its reset token. Make sure you opened the full link from your email, or request a new one from the sign-in page.")}</p>
         <form onSubmit={submit}>
-          <label className="input-label">New password</label>
-          <input className="text-input" type="password" placeholder="At least 8 characters" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
-          <label className="input-label">Confirm new password</label>
+          <label className="input-label">{<LocalizedText text={"New password"}/>}</label>
+          <input className="text-input" type="password" placeholder={translateUI("At least 8 characters")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
+          <label className="input-label">{<LocalizedText text={"Confirm new password"}/>}</label>
           <input className="text-input" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} />
           {error && <p className="form-error-text">{error}</p>}
-          <button className="primary-btn full-btn" disabled={submitting}>{submitting ? "Resetting..." : "Reset password"}<ArrowRight size={17} /></button>
+          <button className="primary-btn full-btn" disabled={submitting}>{submitting ? translateUI("Resetting...") : translateUI("Reset password")}<ArrowRight size={17} /></button>
         </form>
       </> : <>
-        <h2>Password updated</h2>
-        <p>Your password has been reset. You can now close this tab and sign in with your new password.</p>
-        <Link className="primary-btn full-btn" href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Check size={17} /> Go to Tetratrades</Link>
+        <h2>{<LocalizedText text={"Password updated"}/>}</h2>
+        <p>{<LocalizedText text={"Your password has been reset. You can now close this tab and sign in with your new password."}/>}</p>
+        <Link className="primary-btn full-btn" href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Check size={17} /> {<LocalizedText text={"Go to Tetratrades"}/>}</Link>
       </>}
-      <div className="modal-security"><LockKeyhole size={14} /> Your account is secured with encrypted credentials</div>
+      <div className="modal-security"><LockKeyhole size={14} /> {<LocalizedText text={"Your account is secured with encrypted credentials"}/>}</div>
     </div>
   );
 }
