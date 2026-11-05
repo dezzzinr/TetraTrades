@@ -1,0 +1,320 @@
+diff --git a/README.md b/README.md
+index 5f511f1..9154656 100644
+--- a/README.md
++++ b/README.md
+@@ -195,10 +195,12 @@ Registering or logging in with a matching email automatically promotes that acco
+ 
+ ## Language selector, live translation, tab persistence, and demo-account gating
+ 
+-**Language selector.** A globe icon in the topbar, plus a "Display language" dropdown on the Profile page, let any user switch the app's chrome between English, Español, Français, Português, العربية, हिन्दी, 中文, and Русский. The choice **always defaults to English** and is **only ever set manually** — unlike currency, it's never derived from the user's country. Signed-in users' choice is saved to their account (`users.language`) and re-adopted on any device/browser that doesn't already have its own local choice; guests get a local-only (per-browser) choice.
++**Language selector.** A globe icon in the topbar, plus a "Display language" dropdown on the Profile page, let any user switch the app's chrome between 17 languages: English, Español, Français, Português, العربية, हिन्दी, 中文, Русский, Polski, Deutsch, Italiano, Nederlands, Svenska, Română, Čeština, Ελληνικά, and Українська. The choice **always defaults to English** and is **only ever set manually** — unlike currency, it's never derived from the user's country. Signed-in users' choice is saved to their account (`users.language`) and re-adopted on any device/browser that doesn't already have its own local choice; guests get a local-only (per-browser) choice.
+ 
+ **Live translation, not a hand-written dictionary.** Translated text comes from MyMemory (`api.mymemory.translated.net`), a free, keyless machine-translation API, called via a small internal `/api/translate` route. Every translated string is cached forever per language in a new `translation_cache` table (keyed by a hash of the source text), so the API is called at most once per unique string per language across the app's whole lifetime — not once per user, not once per session. Any string that fails to translate (daily anonymous-tier quota reached, network error, etc.) falls back to the original English text rather than breaking the UI; raw HTML/markup artifacts that MyMemory's translation-memory lookups occasionally return for very short strings are stripped before caching. Translation coverage focuses on navigation, the topbar, every page's heading/description, and the full login/register/forgot-password/demo-upgrade modals — the highest-visibility chrome, using the same "chrome is translated, raw data stays canonical" scoping already used for currency conversion.
+ 
++**Hand-written overrides on top of the machine translation.** `src/lib/i18n-dictionaries.ts` holds a `TRANSLATION_OVERRIDES` map of human-written translations that take priority over the machine output, for the cases where a lookup engine is weakest — short, context-free labels ("Withdraw", "Trade History") in languages with heavy inflection. Polish is fully covered there today (all 154 unique manifest strings), since Polish's seven-case grammar makes bare machine translation of UI labels noticeably awkward. Anything not present for a given language still machine-translates exactly as before, so a dictionary can be partial without any loss of coverage, and `t()` resolves in the order **hand-written override → cached machine translation → English source**. Adding a language is two entries: `LANGUAGES` in `src/lib/i18n.ts` and `MYMEMORY_LANGPAIR` in `src/lib/translate-server.ts` (typed as `Record<LanguageCode, string>`, so the build fails loudly if you forget); an optional third is a dictionary block here.
++
+ **Tab persistence across refresh.** The active tab is remembered in `localStorage` (`nexa_last_page`) and restored on reload, so refreshing the browser no longer drops you back to Overview.
+ 
+ **Demo-account gating.** Demo/guest users can still browse everything (dashboards, markets, catalogs) with no restriction. The moment a demo user attempts a mutating action — quick/market trade, limit/stop/margin order, deposit, withdrawal, or a bot/copy-trader/plan subscription — a "Create a free account to continue" modal interrupts with Sign up / Sign in / Keep exploring options, enforced both client-side (`requireRealAccount()` guard in `src/app/page.tsx`) and server-side (`blockedActionMessage()` in `src/lib/accounts.ts`, so it can't be bypassed by calling the API directly). The same modal also appears automatically after roughly two minutes of demo browsing, as a proactive nudge.
+diff --git a/src/components/i18n-provider.tsx b/src/components/i18n-provider.tsx
+index 7dfdf95..181ca1d 100644
+--- a/src/components/i18n-provider.tsx
++++ b/src/components/i18n-provider.tsx
+@@ -2,6 +2,7 @@
+ import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+ import { DEFAULT_LANGUAGE, LanguageCode, isLanguageCode } from "@/lib/i18n";
+ import { UI_STRINGS } from "@/lib/ui-strings";
++import { TRANSLATION_OVERRIDES } from "@/lib/i18n-dictionaries";
+ 
+ type Dictionary = Record<string, string>;
+ type LanguageContextValue = {
+@@ -42,6 +43,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
+   useEffect(() => {
+     // English needs no dictionary at all - t() always returns the raw
+     // string when language === "en", so there's nothing to fetch or clear.
++    // (Languages with a hand-written override entry still get the machine
++    // translation for everything the dictionary doesn't cover, so this batch
++    // fetch runs for them too.)
+     if (language === "en") return;
+     let cancelled = false;
+     (async () => {
+@@ -81,7 +85,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
+     try { window.localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
+   }, []);
+ 
+-  const t = useCallback((text: string) => (language === "en" ? text : (dict[text] ?? text)), [language, dict]);
++  // Resolution order: hand-written override -> machine-translated dictionary
++  // -> the English source string. Overrides are checked first and only for the
++  // current language, so a partial dictionary never shadows a complete one.
++  const t = useCallback((text: string) => {
++    if (language === "en") return text;
++    return TRANSLATION_OVERRIDES[language]?.[text] ?? dict[text] ?? text;
++  }, [language, dict]);
+ 
+   const value = useMemo(() => ({ language, setLanguage, t, translating }), [language, setLanguage, t, translating]);
+   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+diff --git a/src/lib/i18n-dictionaries.ts b/src/lib/i18n-dictionaries.ts
+new file mode 100644
+index 0000000..42f783c
+--- /dev/null
++++ b/src/lib/i18n-dictionaries.ts
+@@ -0,0 +1,209 @@
++import type { LanguageCode } from "@/lib/i18n";
++
++// Hand-written translation overrides for a subset of UI_STRINGS.
++//
++// The app's translation layer is otherwise fully machine-generated (see
++// src/lib/translate-server.ts + /api/translate): English source strings are
++// sent to MyMemory once per language and cached forever in `translation_cache`.
++// That keeps adding a language nearly free, but short UI labels are exactly
++// where machine translation is weakest - Polish in particular has seven
++// grammatical cases, so a lookup engine often returns the wrong inflection for
++// strings like "Trade History" or "Withdraw" that have no surrounding sentence
++// to disambiguate them.
++//
++// Anything listed here is used verbatim and skips the API entirely; any string
++// NOT listed still falls back to the machine translation, then to the English
++// original. So a dictionary can be partial - it's a quality layer on top of the
++// existing pipeline, not a replacement for it. `t()` resolves in this order:
++//
++//   1. OVERRIDES[language][text]   (this file - hand-written, best quality)
++//   2. machine translation cache   (translation_cache / localStorage)
++//   3. the English source text     (last-resort fallback)
++//
++// Keys MUST match the strings in src/lib/ui-strings.ts exactly (including
++// punctuation, capitalisation, and the em dashes) or they'll never be hit.
++//
++// Add a language here whenever a native speaker - or a careful review - can
++// cover its most-seen chrome. The rest keeps machine-translating for free.
++
++export const TRANSLATION_OVERRIDES: Partial<Record<LanguageCode, Record<string, string>>> = {
++  pl: {
++    // Nav groups
++    "WORKSPACE": "PRZESTRZEŃ ROBOCZA",
++    "GROW YOUR WEALTH": "POWIĘKSZAJ SWÓJ MAJĄTEK",
++    "ACCOUNT": "KONTO",
++
++    // Nav items
++    "Overview": "Przegląd",
++    "Portfolio": "Portfel",
++    "Trade": "Handel",
++    "Markets": "Rynki",
++    "Trading Bot": "Bot handlowy",
++    "Copy Trading": "Kopiowanie transakcji",
++    "Trading Signals": "Sygnały handlowe",
++    "Plans": "Plany",
++    "Profile": "Profil",
++    "Deposit": "Wpłata",
++    "Withdraw": "Wypłata",
++    "Transactions": "Transakcje",
++    "Trade History": "Historia handlu",
++    "NEW": "NOWE",
++
++    // Sidebar footer
++    "Need a hand?": "Potrzebujesz pomocy?",
++    "Explore the platform with your free demo account.": "Poznaj platformę dzięki darmowemu kontu demonstracyjnemu.",
++    "Explore signals": "Przeglądaj sygnały",
++    "Secure paper trading platform": "Bezpieczna platforma handlu symulowanego",
++
++    // Topbar
++    "Workspace": "Przestrzeń robocza",
++    "Search markets...": "Szukaj rynków...",
++    "Notifications": "Powiadomienia",
++    "No notifications yet": "Brak powiadomień",
++    "Admin panel": "Panel administratora",
++    "View profile": "Zobacz profil",
++    "Create an account": "Utwórz konto",
++    "Sign in": "Zaloguj się",
++    "Log out": "Wyloguj się",
++    "Demo account": "Konto demo",
++    "Exploring in demo mode": "Przeglądanie w trybie demo",
++    "No active plan": "Brak aktywnego planu",
++    "member": "członek",
++
++    // Overview page
++    "Good to see you,": "Dobrze Cię widzieć,",
++    "Here's what's happening with your portfolio today.": "Oto co dzieje się dziś z Twoim portfelem.",
++    "Paper trading": "Handel symulowany",
++    "Add funds": "Dodaj środki",
++
++    // Common buttons / actions
++    "Save": "Zapisz",
++    "Cancel": "Anuluj",
++    "Submit": "Wyślij",
++    "Close": "Zamknij",
++    "Continue": "Kontynuuj",
++    "Back": "Wstecz",
++    "Next": "Dalej",
++    "Confirm": "Potwierdź",
++    "Buy": "Kup",
++    "Sell": "Sprzedaj",
++    "Place trade": "Złóż transakcję",
++    "Place order": "Złóż zlecenie",
++    "Place position": "Otwórz pozycję",
++
++    // Auth modals
++    "Welcome back": "Witamy ponownie",
++    "Sign in to pick up right where you left off.": "Zaloguj się, aby kontynuować od miejsca, w którym skończyłeś.",
++    "Email or username": "E-mail lub nazwa użytkownika",
++    "Password": "Hasło",
++    "Forgot password?": "Nie pamiętasz hasła?",
++    "Please wait...": "Proszę czekać...",
++    "New to Tetratrades?": "Pierwszy raz w Tetratrades?",
++    "Your account is secured with encrypted credentials": "Twoje konto jest chronione zaszyfrowanymi danymi logowania",
++    "Don't have an account?": "Nie masz konta?",
++    "Sign up": "Zarejestruj się",
++    "Already have an account?": "Masz już konto?",
++    "Full Name": "Imię i nazwisko",
++    "Date of Birth": "Data urodzenia",
++    "Gender": "Płeć",
++    "Country": "Kraj",
++    "State/Province": "Województwo/region",
++    "City": "Miasto",
++    "Residential Address": "Adres zamieszkania",
++    "Phone Number": "Numer telefonu",
++    "Email Address": "Adres e-mail",
++    "Profile Photo": "Zdjęcie profilowe",
++    "Username": "Nazwa użytkownika",
++    "Confirm Password": "Potwierdź hasło",
++    "Referral/Promo Code": "Kod polecający/promocyjny",
++    "Security Question": "Pytanie zabezpieczające",
++    "Security Answer": "Odpowiedź zabezpieczająca",
++    "I agree to the": "Akceptuję",
++    "Terms & Conditions": "Regulamin",
++    "Privacy Policy": "Politykę prywatności",
++    "Personal Information": "Dane osobowe",
++    "Account Setup": "Konfiguracja konta",
++    "Create account": "Utwórz konto",
++
++    // Forgot password flow
++    "Reset your password": "Zresetuj hasło",
++    "Enter your email or username": "Podaj adres e-mail lub nazwę użytkownika",
++    "What's your security question answer?": "Jaka jest odpowiedź na Twoje pytanie zabezpieczające?",
++    "New password": "Nowe hasło",
++    "Confirm new password": "Potwierdź nowe hasło",
++    "Reset password": "Zresetuj hasło",
++    "Forgot your password?": "Nie pamiętasz hasła?",
++    "Enter your email or username and we'll ask your security question.": "Podaj adres e-mail lub nazwę użytkownika, a wyświetlimy Twoje pytanie zabezpieczające.",
++    "Looking up...": "Wyszukiwanie...",
++    "Answer your security question": "Odpowiedz na pytanie zabezpieczające",
++    "Your answer": "Twoja odpowiedź",
++    "Resetting...": "Resetowanie...",
++    "Password updated": "Hasło zaktualizowane",
++    "Your password has been reset. You can now sign in with your new password.": "Hasło zostało zresetowane. Możesz teraz zalogować się nowym hasłem.",
++
++    // Demo upgrade gate
++    "Create a free account to continue": "Utwórz darmowe konto, aby kontynuować",
++    "Sign up free": "Zarejestruj się za darmo",
++    "Maybe later": "Może później",
++    "Your demo trades, deposits, and subscriptions won't be saved until you create a free account.": "Twoje transakcje demo, wpłaty i subskrypcje nie zostaną zapisane, dopóki nie utworzysz darmowego konta.",
++    "Keep exploring": "Kontynuuj przeglądanie",
++
++    // Language selector
++    "Language": "Język",
++
++    // Page headings
++    "My portfolio": "Mój portfel",
++    "Your holdings valued against current market prices.": "Twoje aktywa wycenione według aktualnych cen rynkowych.",
++    "Trade crypto": "Handluj kryptowalutami",
++    "Live candlestick charts, full order types, and leveraged positions — no fees, no slippage.": "Wykresy świecowe na żywo, wszystkie typy zleceń i pozycje z dźwignią — bez prowizji i poślizgu.",
++    "Explore markets": "Przeglądaj rynki",
++    "Discover assets and find your next opportunity using CoinGecko market data.": "Odkrywaj aktywa i znajdź swoją kolejną okazję dzięki danym rynkowym CoinGecko.",
++    "Trading bots": "Boty handlowe",
++    "Subscribe to an admin-managed bot strategy for 7 days, then configure it to trade.": "Subskrybuj zarządzaną przez administratora strategię bota na 7 dni, a następnie skonfiguruj go do handlu.",
++    "Copy trading": "Kopiowanie transakcji",
++    "Subscribe to a trader's strategy for 7 days and track your subscription history.": "Subskrybuj strategię tradera na 7 dni i śledź historię subskrypcji.",
++    "Market signals": "Sygnały rynkowe",
++    "A clearer look at price momentum and today's trading range. Not financial advice.": "Przejrzysty obraz dynamiki cen i dzisiejszego zakresu handlu. To nie jest porada finansowa.",
++    "Choose your plan": "Wybierz swój plan",
++    "Subscribe weekly to unlock more of the platform. No auto-renewal — resubscribe (or switch) once your week is up.": "Subskrybuj tygodniowo, aby odblokować więcej możliwości platformy. Bez automatycznego odnawiania — przedłuż subskrypcję (lub zmień plan), gdy tydzień dobiegnie końca.",
++    "Send a payment from outside Tetratrades using one of the methods below, then submit your receipt for admin review.": "Wyślij płatność spoza Tetratrades jedną z metod poniżej, a następnie prześlij potwierdzenie do weryfikacji przez administratora.",
++    "Withdraw funds": "Wypłać środki",
++    "Request a payout to any platform you choose. An admin reviews and sends it before it's final.": "Zamów wypłatę na dowolną wybraną platformę. Administrator weryfikuje ją i realizuje przed finalizacją.",
++    "Keep track of every deposit, withdrawal, and plan charge.": "Śledź każdą wpłatę, wypłatę i opłatę za plan.",
++    "Trade history": "Historia handlu",
++    "Review every spot trade, order, and leveraged position in your paper-trading account.": "Przeglądaj każdą transakcję spot, zlecenie i pozycję z dźwignią na swoim koncie handlu symulowanego.",
++
++    // Registration modal
++    "Create your account": "Utwórz swoje konto",
++    "Join Tetratrades": "Dołącz do Tetratrades",
++    "Your trading journey starts here. Deposit paper funds anytime to start trading. Fields marked * are required.": "Twoja przygoda z handlem zaczyna się tutaj. W dowolnym momencie wpłać środki wirtualne, aby zacząć handlować. Pola oznaczone * są wymagane.",
++    "Prefer not to specify": "Wolę nie podawać",
++    "Select your country": "Wybierz swój kraj",
++    "Optional": "Opcjonalne",
++    "Your balances will display in": "Domyślna waluta Twoich sald to",
++    "by default — you can change this later in your profile.": "— możesz ją zmienić później w swoim profilu.",
++    "Replace photo": "Zmień zdjęcie",
++    "Upload photo": "Prześlij zdjęcie",
++    "Remove": "Usuń",
++    "Optional · JPG, PNG, WEBP, or GIF · Max 2MB · can be added later": "Opcjonalne · JPG, PNG, WEBP lub GIF · Maks. 2 MB · można dodać później",
++    "Re-enter your password": "Ponownie wpisz hasło",
++    "Optional — e.g. favorite teacher's name": "Opcjonalne — np. imię ulubionego nauczyciela",
++    "Setting a security question lets you reset your password later without email access.": "Ustawienie pytania zabezpieczającego pozwala później zresetować hasło bez dostępu do poczty e-mail.",
++    "Creating account...": "Tworzenie konta...",
++    "Upload a JPG, PNG, WEBP, or GIF image.": "Prześlij obraz w formacie JPG, PNG, WEBP lub GIF.",
++    "File is too large. Max size is": "Plik jest za duży. Maksymalny rozmiar to",
++    "Could not read that file. Please try again.": "Nie udało się odczytać pliku. Spróbuj ponownie.",
++    "Enter your full name.": "Podaj imię i nazwisko.",
++    "Enter your date of birth.": "Podaj datę urodzenia.",
++    "Select your country.": "Wybierz swój kraj.",
++    "Enter your phone number.": "Podaj numer telefonu.",
++    "Enter your email address.": "Podaj adres e-mail.",
++    "Choose a username.": "Wybierz nazwę użytkownika.",
++    "Password must be at least 8 characters.": "Hasło musi mieć co najmniej 8 znaków.",
++    "Password and confirm password do not match.": "Hasło i potwierdzenie hasła nie są zgodne.",
++    "Enter both a security question and an answer, or leave both blank.": "Podaj pytanie zabezpieczające i odpowiedź lub pozostaw oba pola puste.",
++    "You must agree to the Terms & Conditions.": "Musisz zaakceptować Regulamin.",
++    "You must agree to the Privacy Policy.": "Musisz zaakceptować Politykę prywatności.",
++    "Registration failed.": "Rejestracja nie powiodła się.",
++  },
++};
+diff --git a/src/lib/i18n.ts b/src/lib/i18n.ts
+index 9fcf4ff..9a07f2c 100644
+--- a/src/lib/i18n.ts
++++ b/src/lib/i18n.ts
+@@ -1,8 +1,13 @@
+-// Supported UI languages. Kept deliberately small and curated rather than
++// Supported UI languages. Kept deliberately curated rather than
+ // "every language MyMemory supports" so the selector stays a clean dropdown.
+-// Add more here any time - no other code needs to change, the translation
+-// cache/API picks up new languages automatically.
+-export type LanguageCode = "en" | "es" | "fr" | "pt" | "ar" | "hi" | "zh" | "ru";
++// Add more here any time - the only other place to touch is
++// MYMEMORY_LANGPAIR in src/lib/translate-server.ts (which is typed as
++// Record<LanguageCode, string>, so the build fails loudly if a new language
++// is added here without a translation-API code there).
++// The translation cache/API picks up new languages automatically.
++export type LanguageCode =
++  | "en" | "es" | "fr" | "pt" | "ar" | "hi" | "zh" | "ru"
++  | "pl" | "de" | "it" | "nl" | "sv" | "ro" | "cs" | "el" | "uk";
+ 
+ export type LanguageInfo = { code: LanguageCode; label: string; nativeLabel: string; flag: string; rtl?: boolean };
+ 
+@@ -15,6 +20,15 @@ export const LANGUAGES: LanguageInfo[] = [
+   { code: "hi", label: "Hindi", nativeLabel: "हिन्दी", flag: "🇮🇳" },
+   { code: "zh", label: "Chinese (Simplified)", nativeLabel: "中文", flag: "🇨🇳" },
+   { code: "ru", label: "Russian", nativeLabel: "Русский", flag: "🇷🇺" },
++  { code: "pl", label: "Polish", nativeLabel: "Polski", flag: "🇵🇱" },
++  { code: "de", label: "German", nativeLabel: "Deutsch", flag: "🇩🇪" },
++  { code: "it", label: "Italian", nativeLabel: "Italiano", flag: "🇮🇹" },
++  { code: "nl", label: "Dutch", nativeLabel: "Nederlands", flag: "🇳🇱" },
++  { code: "sv", label: "Swedish", nativeLabel: "Svenska", flag: "🇸🇪" },
++  { code: "ro", label: "Romanian", nativeLabel: "Română", flag: "🇷🇴" },
++  { code: "cs", label: "Czech", nativeLabel: "Čeština", flag: "🇨🇿" },
++  { code: "el", label: "Greek", nativeLabel: "Ελληνικά", flag: "🇬🇷" },
++  { code: "uk", label: "Ukrainian", nativeLabel: "Українська", flag: "🇺🇦" },
+ ];
+ 
+ export const DEFAULT_LANGUAGE: LanguageCode = "en";
+diff --git a/src/lib/translate-server.ts b/src/lib/translate-server.ts
+index ef9d59b..a906ea1 100644
+--- a/src/lib/translate-server.ts
++++ b/src/lib/translate-server.ts
+@@ -10,6 +10,7 @@ import type { LanguageCode } from "@/lib/i18n";
+ // own language codes.
+ const MYMEMORY_LANGPAIR: Record<LanguageCode, string> = {
+   en: "en", es: "es", fr: "fr", pt: "pt", ar: "ar", hi: "hi", zh: "zh-CN", ru: "ru",
++  pl: "pl", de: "de", it: "it", nl: "nl", sv: "sv", ro: "ro", cs: "cs", el: "el", uk: "uk",
+ };
+ 
+ const hashOf = (text: string) => createHash("sha256").update(text).digest("hex");

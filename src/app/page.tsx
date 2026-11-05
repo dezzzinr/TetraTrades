@@ -1041,7 +1041,7 @@ function HomePageInner() {
         <div className="stats-grid">
           {card(Activity, "Portfolio value", money(portfolioValue), <span>{data.holdings.length} assets held</span>, "purple")}
           {card(CreditCard, "Available cash", money(data.user.cashBalance), <span>Ready for Live trades</span>, "orange")}
-          {card(Gift, "Profits", money(data.user.profitBalance), <span>Credited by admin</span>, "green")}
+          {card(Gift, "Profits", money(data.user.profitBalance), <span>Profits earned</span>, "green")}
           {card(TrendingUp, "Unrealized profit / loss", Number.isFinite(pnl) ? `${pnl >= 0 ? "+" : "-"}${money(Math.abs(pnl))}` : "—", <>{hasQuotes && costBasis > 0 && <span className={pnl >= 0 ? "up-tag" : "negative-tag"}>{pnl >= 0 ? <ArrowUpRight size={13}/> : <ArrowDownRight size={13}/>} {pnl >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%</span>}<span>vs. your average buy price</span></>, "green")}
         </div>
         <div className="dashboard-grid">

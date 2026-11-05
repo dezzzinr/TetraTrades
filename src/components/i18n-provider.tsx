@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { DEFAULT_LANGUAGE, LanguageCode, isLanguageCode } from "@/lib/i18n";
 import { UI_STRINGS } from "@/lib/ui-strings";
+import { TRANSLATION_OVERRIDES } from "@/lib/i18n-dictionaries";
 
 type Dictionary = Record<string, string>;
 type LanguageContextValue = {
@@ -42,6 +43,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // English needs no dictionary at all - t() always returns the raw
     // string when language === "en", so there's nothing to fetch or clear.
+    // (Languages with a hand-written override entry still get the machine
+    // translation for everything the dictionary doesn't cover, so this batch
+    // fetch runs for them too.)
     if (language === "en") return;
     let cancelled = false;
     (async () => {
@@ -81,7 +85,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     try { window.localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
   }, []);
 
-  const t = useCallback((text: string) => (language === "en" ? text : (dict[text] ?? text)), [language, dict]);
+  // Resolution order: hand-written override -> machine-translated dictionary
+  // -> the English source string. Overrides are checked first and only for the
+  // current language, so a partial dictionary never shadows a complete one.
+  const t = useCallback((text: string) => {
+    if (language === "en") return text;
+    return TRANSLATION_OVERRIDES[language]?.[text] ?? dict[text] ?? text;
+  }, [language, dict]);
 
   const value = useMemo(() => ({ language, setLanguage, t, translating }), [language, setLanguage, t, translating]);
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

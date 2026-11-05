@@ -10,6 +10,7 @@ import type { LanguageCode } from "@/lib/i18n";
 // own language codes.
 const MYMEMORY_LANGPAIR: Record<LanguageCode, string> = {
   en: "en", es: "es", fr: "fr", pt: "pt", ar: "ar", hi: "hi", zh: "zh-CN", ru: "ru",
+  pl: "pl", de: "de", it: "it", nl: "nl", sv: "sv", ro: "ro", cs: "cs", el: "el", uk: "uk",
 };
 
 const hashOf = (text: string) => createHash("sha256").update(text).digest("hex");

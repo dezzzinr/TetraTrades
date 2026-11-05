@@ -1,0 +1,32 @@
+import { chromium } from 'playwright';
+import { mkdir } from 'node:fs/promises';
+const base = process.env.SMOKE_BASE_URL ?? 'http://127.0.0.1:3000';
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+const errors = [];
+page.on('pageerror', error => errors.push(error.message));
+await mkdir('.cache/ui', { recursive: true });
+try {
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await page.locator('.nav-item').filter({ hasText: 'Markets' }).click();
+  await page.waitForSelector('.explorer-table tbody tr');
+  if (await page.locator('.explorer-table tbody tr').count() !== 33) throw new Error('Expected 33 catalog rows');
+  await page.screenshot({ path: '.cache/ui/markets-desktop.png', fullPage: true });
+  await page.locator('.asset-class-card').filter({ hasText: 'Bonds' }).click();
+  await page.locator('.explorer-table tbody tr').filter({ hasText: 'US 10-year' }).locator('.table-trade').click();
+  await page.waitForSelector('.reference-ticket');
+  if (await page.locator('.trade-order-panel form').count()) throw new Error('Benchmark exposed an order ticket');
+  await page.screenshot({ path: '.cache/ui/bond-detail.png', fullPage: true });
+  await page.locator('.reference-ticket .related-etf-list button').first().click();
+  await page.waitForSelector('.trade-order-panel form');
+  if (!await page.locator('.trade-mode-toggle button').nth(1).isDisabled()) throw new Error('ETF inherited crypto margin');
+  await page.screenshot({ path: '.cache/ui/etf-trade.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.menu-btn').click();
+  await page.locator('.nav-item').filter({ hasText: 'Markets' }).click();
+  await page.waitForSelector('.explorer-table');
+  if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error('Mobile page overflows viewport');
+  await page.screenshot({ path: '.cache/ui/markets-mobile.png', fullPage: true });
+  if (errors.length) throw new Error(errors.join('\n'));
+  console.log('UI checks passed: catalog, reference-only ticket, ETF margin guard, mobile layout, no browser errors.');
+} finally { await browser.close(); }
