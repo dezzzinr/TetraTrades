@@ -1,4 +1,58 @@
-import { assets as catalog, compactMoney, supportedCoins, type Candle, type ChartPeriod, type ChartPoint, type MarketSnapshot } from "@/lib/market";
+import "server-only";
+import { assets as catalog, compactMoney, emptyAsset, supportedCoins, type Asset, type Candle, type ChartPeriod, type ChartPoint, type MarketSnapshot } from "@/lib/market";
+import type { Instrument } from "@/lib/instruments";
+import { executionGate, type Quote } from "@/lib/market-rules";
+import { demoProvider } from "@/lib/providers/demo";
+import { coingeckoProvider } from "@/lib/providers/coingecko";
+import { twelvedataProvider } from "@/lib/providers/twelvedata";
+import { eodhdProvider } from "@/lib/providers/eodhd";
+
+export function getMarketMode(): "demo" | "provider" {
+  return process.env.MARKET_DATA_MODE === "demo" ? "demo" : "provider";
+}
+
+const providerById = { coingecko: coingeckoProvider, twelvedata: twelvedataProvider, eodhd: eodhdProvider };
+
+export async function getAssetForInstrument(instrument: Instrument): Promise<Asset> {
+  const asset = emptyAsset(instrument);
+  try {
+    const provider = getMarketMode() === "demo" ? demoProvider : providerById[instrument.provider];
+    const quote = (await provider.getQuotes([instrument]))[0];
+    if (!quote) return asset;
+    return assetFromQuote(asset, quote);
+  } catch (error) {
+    console.error("Instrument quote unavailable:", error instanceof Error ? error.message : error);
+    return asset;
+  }
+}
+
+function assetFromQuote(asset: Asset, quote: Quote): Asset {
+  return {
+    ...asset, price: quote.price ?? 0, change: quote.changePercent ?? 0,
+    change7d: quote.change7dPercent ?? 0, volumeUsd: quote.volume ?? 0,
+    rawVolume: quote.volume ?? 0, capUsd: quote.marketCap ?? 0,
+    chart: quote.sparkline, rank: quote.rank, high24h: quote.high, low24h: quote.low,
+    updatedAt: quote.observedAt, image: quote.image, quoteStatus: quote.status,
+    latency: quote.latency, marketOpen: quote.marketOpen, source: quote.source,
+    volume: compactMoney(quote.volume ?? 0), cap: compactMoney(quote.marketCap ?? 0),
+  };
+}
+
+export function requireExecutableQuote(asset: Asset): void {
+  const quote: Quote = {
+    instrumentId: asset.id, price: asset.price > 0 ? asset.price : null,
+    observedAt: asset.updatedAt, status: asset.quoteStatus, latency: asset.latency,
+    marketOpen: asset.marketOpen, changePercent: asset.change, change7dPercent: asset.change7d,
+    high: asset.high24h, low: asset.low24h, volume: asset.rawVolume ?? null,
+    marketCap: asset.capUsd, sparkline: asset.chart, rank: asset.rank, image: asset.image,
+    source: asset.source,
+  };
+  const error = executionGate(asset, quote, {
+    allowDelayedPaperFills: process.env.ALLOW_DELAYED_PAPER_FILLS === "true",
+    maxQuoteAgeMs: 15 * 60 * 1000,
+  });
+  if (error) throw new Error(error);
+}
 
 const demoKey = process.env.COINGECKO_API_KEY || process.env.COINGECKO_DEMO_API_KEY;
 const proKey = process.env.COINGECKO_PRO_API_KEY;

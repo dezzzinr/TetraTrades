@@ -1,8 +1,10 @@
 export type ChartPeriod = "24H" | "7D" | "30D" | "1Y";
 export type ChartPoint = { timestamp: number; price: number };
 export type Candle = { timestamp: number; open: number; high: number; low: number; close: number; volume: number };
+import type { Instrument } from "./instruments";
+import { getInstrument } from "./instruments";
 
-export type Asset = {
+export type Asset = Instrument & {
   id: string;
   symbol: string;
   name: string;
@@ -21,7 +23,28 @@ export type Asset = {
   high24h: number | null;
   low24h: number | null;
   updatedAt: string | null;
+  quoteStatus: "live" | "demo" | "closed" | "stale" | "unavailable";
+  latency: "real_time" | "delayed" | "end_of_day" | "unknown" | "demo";
+  marketOpen: boolean | null;
+  source: string;
+  rawVolume?: number;
 };
+
+export function emptyAsset(instrument: Instrument): Asset {
+  return {
+    ...instrument,
+    id: instrument.id, symbol: instrument.symbol, name: instrument.name,
+    displaySymbol: instrument.displaySymbol, assetClass: instrument.assetClass,
+    provider: instrument.provider, providerSymbol: instrument.providerSymbol,
+    exchange: instrument.exchange, tradable: instrument.tradable,
+    valueKind: instrument.valueKind, relatedSymbols: instrument.relatedSymbols,
+    color: instrument.color, mark: instrument.mark, image: null, price: 0,
+    change: 0, change7d: 0, volume: "—", cap: "—", volumeUsd: 0, capUsd: 0,
+    chart: [], rank: null, high24h: null, low24h: null, updatedAt: null,
+    quoteStatus: "unavailable", latency: "unknown", marketOpen: null,
+    source: "Unavailable",
+  };
+}
 
 export type MarketSnapshot = {
   assets: Asset[];
@@ -43,22 +66,10 @@ const catalog = [
 ] as const;
 
 export const supportedCoins = catalog;
-export const assets: Asset[] = catalog.map((coin) => ({
-  ...coin,
-  image: null,
-  price: 0,
-  change: 0,
-  change7d: 0,
-  volume: "—",
-  cap: "—",
-  volumeUsd: 0,
-  capUsd: 0,
-  chart: [],
-  rank: null,
-  high24h: null,
-  low24h: null,
-  updatedAt: null,
-}));
+export const assets: Asset[] = catalog.flatMap((coin) => {
+  const instrument = getInstrument(coin.symbol);
+  return instrument ? [{ ...emptyAsset(instrument), ...coin }] : [];
+});
 
 export const getAsset = (symbol: string) => assets.find((asset) => asset.symbol === symbol);
 

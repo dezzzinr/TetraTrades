@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Activity, AlertTriangle, ArrowDownLeft, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUpRight, Bell, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3, Copy as CopyIcon, CreditCard, History, LayoutDashboard, LockKeyhole, Menu, Moon, Pencil, Plus, RefreshCw, Search, Send, ShieldAlert, ShieldCheck, Sparkles, Sun, Target, Trash2, TrendingUp, UserPlus, UserRound, UsersRound, Wallet, X } from "lucide-react";
 import { notificationVisual, timeAgo } from "@/lib/notification-visual";
 import { DEPOSIT_METHODS, depositMethodLabel, type DepositMethod } from "@/lib/deposits";
@@ -15,6 +16,11 @@ import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { formatMoney, formatMarketPrice, formatInCurrency } from "@/lib/currency";
 
 type AdminUser = { id: string; name: string; email: string | null; currency?: string };
+function deferEffect(task: () => void | (() => void)) {
+  let cleanup: void | (() => void);
+  const timer = window.setTimeout(() => { cleanup = task(); }, 0);
+  return () => { window.clearTimeout(timer); cleanup?.(); };
+}
 type Notification = { id: string; type?: string; title: string; message: string; readAt: string | null; createdAt: string; aboutUserId?: string | null };
 type DepositRequestRow = {
   id: string; method: string; amount: string; destinationLabel: string | null; reference: string | null; note: string | null;
@@ -145,6 +151,11 @@ export default function AdminPage() {
 }
 
 function AdminPageInner() {
+  const [renderNow, setRenderNow] = useState<number | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setRenderNow(Date.now()), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
   const confirm = useConfirm();
   const { theme, toggleTheme } = useTheme();
   const [admin, setAdmin] = useState<AdminUser | null>(null);
@@ -202,9 +213,11 @@ function AdminPageInner() {
   };
   useEffect(() => {
     if (authState !== "ok") return;
+    return deferEffect(() => {
     void loadNotifSummary();
     const id = window.setInterval(() => void loadNotifSummary(), 30000);
     return () => window.clearInterval(id);
+    });
   }, [authState]);
   const toggleNotifications = () => {
     const opening = !notificationsOpen;
@@ -225,10 +238,11 @@ function AdminPageInner() {
     } catch { /* ignore */ } finally { setNotifLoading(false); }
   };
   useEffect(() => {
-    if (authState === "ok" && tab === "notifications") {
+    if (authState !== "ok" || tab !== "notifications") return;
+    return deferEffect(() => {
       void loadAllNotifications(0, notifTypeFilter);
       if (unreadNotifications > 0) fetch("/api/notifications", { method: "POST" }).then(() => loadNotifSummary()).catch(() => {});
-    }
+    });
   }, [authState, tab]);
   const markOneNotificationRead = async (id: string) => {
     try { await fetch(`/api/notifications/${id}`, { method: "PATCH" }); } catch { /* ignore */ }
@@ -312,7 +326,7 @@ function AdminPageInner() {
       setOverview(result);
     } catch (error) { notify(error instanceof Error ? error.message : "Unable to load overview", true); } finally { setOverviewLoading(false); }
   };
-  useEffect(() => { if (authState === "ok" && tab === "overview") void loadOverview(); }, [authState, tab]);
+  useEffect(() => authState === "ok" && tab === "overview" ? deferEffect(() => { void loadOverview(); }) : undefined, [authState, tab]);
 
   // --- Users ---
   const [userRows, setUserRows] = useState<AdminUserRow[]>([]);
@@ -353,7 +367,7 @@ function AdminPageInner() {
       setUserTotals({ total: result.total ?? 0, totalCashBalance: result.totalCashBalance ?? "0", totalProfitBalance: result.totalProfitBalance ?? "0" });
     } catch (error) { notify(error instanceof Error ? error.message : "Unable to load users", true); } finally { setUsersLoading(false); }
   };
-  useEffect(() => { if (authState === "ok" && tab === "users" && !selectedUserId) void loadUsers(userSearch); }, [authState, tab, selectedUserId]);
+  useEffect(() => authState === "ok" && tab === "users" && !selectedUserId ? deferEffect(() => { void loadUsers(userSearch); }) : undefined, [authState, tab, selectedUserId]);
   useEffect(() => {
     if (authState !== "ok" || tab !== "users" || selectedUserId) return;
     const t = window.setTimeout(() => void loadUsers(userSearch), 350);
@@ -565,8 +579,8 @@ function AdminPageInner() {
       setAccounts(result.accounts ?? []);
     } catch (error) { notify(error instanceof Error ? error.message : "Unable to load deposit accounts", true); } finally { setAccountsLoading(false); }
   };
-  useEffect(() => { if (authState === "ok" && tab === "deposits") void loadRequests(statusFilter); }, [authState, tab, statusFilter]);
-  useEffect(() => { if (authState === "ok" && tab === "accounts") void loadAccounts(); }, [authState, tab]);
+  useEffect(() => authState === "ok" && tab === "deposits" ? deferEffect(() => { void loadRequests(statusFilter); }) : undefined, [authState, tab, statusFilter]);
+  useEffect(() => authState === "ok" && tab === "accounts" ? deferEffect(() => { void loadAccounts(); }) : undefined, [authState, tab]);
 
   const review = async (id: string, action: "approve" | "reject", adminNote?: string) => {
     if (action === "approve" && !(await confirm({ title: "Approve and credit this deposit?", message: "This immediately adds the claimed amount to the user's balance." }))) return;
@@ -592,7 +606,7 @@ function AdminPageInner() {
       setWRequests(result.requests ?? []);
     } catch (error) { notify(error instanceof Error ? error.message : "Unable to load withdrawal requests", true); } finally { setWRequestsLoading(false); }
   };
-  useEffect(() => { if (authState === "ok" && tab === "withdrawals") void loadWithdrawalRequests(wStatusFilter); }, [authState, tab, wStatusFilter]);
+  useEffect(() => authState === "ok" && tab === "withdrawals" ? deferEffect(() => { void loadWithdrawalRequests(wStatusFilter); }) : undefined, [authState, tab, wStatusFilter]);
 
   const reviewWithdrawal = async (id: string, action: "approve" | "reject", adminNote?: string) => {
     if (action === "approve" && !(await confirm({ title: "Approve this withdrawal?", message: "Only confirm once you've actually sent the payout to the user's destination yourself - this just finalizes the record." }))) return;
@@ -664,7 +678,7 @@ function AdminPageInner() {
       setTraders(result.traders ?? []);
     } catch (error) { notify(error instanceof Error ? error.message : "Unable to load copy traders", true); } finally { setTradersLoading(false); }
   };
-  useEffect(() => { if (authState === "ok" && tab === "traders") void loadTraders(); }, [authState, tab]);
+  useEffect(() => authState === "ok" && tab === "traders" ? deferEffect(() => { void loadTraders(); }) : undefined, [authState, tab]);
 
   const createTrader = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -728,7 +742,7 @@ function AdminPageInner() {
       setBotRows(result.bots ?? []);
     } catch (error) { notify(error instanceof Error ? error.message : "Unable to load trading bots", true); } finally { setBotsLoading(false); }
   };
-  useEffect(() => { if (authState === "ok" && tab === "bots") void loadBots(); }, [authState, tab]);
+  useEffect(() => authState === "ok" && tab === "bots" ? deferEffect(() => { void loadBots(); }) : undefined, [authState, tab]);
 
   const createBot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -791,7 +805,7 @@ function AdminPageInner() {
       setPlanRows(result.plans ?? []);
     } catch (error) { notify(error instanceof Error ? error.message : "Unable to load plans", true); } finally { setPlansLoadingAdmin(false); }
   };
-  useEffect(() => { if (authState === "ok" && tab === "plans") void loadPlansAdmin(); }, [authState, tab]);
+  useEffect(() => authState === "ok" && tab === "plans" ? deferEffect(() => { void loadPlansAdmin(); }) : undefined, [authState, tab]);
 
   const createPlan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -868,7 +882,7 @@ function AdminPageInner() {
       <LockKeyhole size={28}/>
       <h2>Admins only</h2>
       <p>You need an admin account to view this page. Sign in with an admin account on the main app, then come back here.</p>
-      <a className="primary-btn" href="/"><ArrowLeft size={16}/> Back to Tetratrades</a>
+      <Link className="primary-btn" href="/"><ArrowLeft size={16}/> Back to Tetratrades</Link>
     </div>
   </div>;
 
@@ -880,7 +894,7 @@ function AdminPageInner() {
       <div className="brand" onClick={() => go("overview")}><div className="brand-icon"><Activity size={23} strokeWidth={3}/></div><span>Tetra<span>Trades</span></span><button className="mobile-close" onClick={(e) => { e.stopPropagation(); setMobileMenu(false); }}><X size={19}/></button></div>
       <div className="sidebar-body">{navGroups.map(group => <div className="nav-group" key={group.label}><div className="nav-label">{group.label}</div>{group.items.map(item => { const Icon = item.icon; return <button key={item.name} className={`nav-item ${tab === item.name ? "selected" : ""}`} onClick={() => go(item.name)}><Icon size={19} strokeWidth={tab === item.name ? 2.25 : 1.8}/><span>{item.label}</span></button>; })}</div>)}</div>
       <div className="sidebar-bottom">
-        <div className="help-card"><span className="help-bubble"><ShieldCheck size={18}/></span><strong>{admin?.name}</strong><p>{admin?.email ?? "Signed in as admin"}</p><a href="/" style={{ display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>Exit to app <ArrowRight size={14}/></a></div>
+        <div className="help-card"><span className="help-bubble"><ShieldCheck size={18}/></span><strong>{admin?.name}</strong><p>{admin?.email ?? "Signed in as admin"}</p><Link href="/" style={{ display: "flex", alignItems: "center", gap: 5, textDecoration: "none" }}>Exit to app <ArrowRight size={14}/></Link></div>
         <div className="sidebar-footer"><ShieldCheck size={15}/> Tetratrades admin panel</div>
       </div>
     </aside>
@@ -899,7 +913,7 @@ function AdminPageInner() {
               <button className="notification-see-all" onClick={() => { setNotificationsOpen(false); setTab("notifications"); }}>See all notifications <ArrowRight size={13}/></button>
             </div>}
           </div>
-          <button className="theme-toggle" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={toggleTheme}>{theme === "dark" ? <Sun size={19}/> : <Moon size={19}/>}</button>{currency !== "USD" && <span className="admin-whoami" title="Change this from your Profile page in the main app"><Wallet size={14}/> Amounts in {currency}</span>}<span className="admin-whoami"><ShieldCheck size={15}/> {admin?.name} · Admin</span><a href="/" className="outline-btn small"><ArrowLeft size={14}/> Exit to app</a></div>
+          <button className="theme-toggle" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={toggleTheme}>{theme === "dark" ? <Sun size={19}/> : <Moon size={19}/>}</button>{currency !== "USD" && <span className="admin-whoami" title="Change this from your Profile page in the main app"><Wallet size={14}/> Amounts in {currency}</span>}<span className="admin-whoami"><ShieldCheck size={15}/> {admin?.name} · Admin</span><Link href="/" className="outline-btn small"><ArrowLeft size={14}/> Exit to app</Link></div>
       </header>
       <main className="admin-content">
         <div className="page-heading"><div><div className="eyebrow">ADMIN PANEL</div><h1>{active.title}</h1><p>{active.description}</p></div></div>
@@ -1122,12 +1136,12 @@ function AdminPageInner() {
                   <div className="admin-account-list">
                     {[...userDetail.botSubscriptions.map(s => ({ ...s, kind: "bot" as const, name: s.botName! })), ...userDetail.copySubscriptions.map(s => ({ ...s, kind: "copy" as const, name: s.traderName! })), ...userDetail.planSubscriptions.map(s => ({ ...s, kind: "plan" as const, name: s.planName! }))]
                       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())
-                      .map(s => { const activeSub = new Date(s.expiresAt).getTime() > Date.now(); return <div className="admin-account-item" key={`${s.kind}-${s.id}`}>
+                      .map(s => { const activeSub = renderNow === null || new Date(s.expiresAt).getTime() > renderNow; return <div className="admin-account-item" key={`${s.kind}-${s.id}`}>
                         <div className="admin-account-item-top"><strong>{s.name} <span style={{ color: "#9aa4b7", fontWeight: 500, textTransform: "capitalize" }}>· {s.kind}</span></strong><span className={`status-pill ${activeSub ? "approved" : "expired"}`}><span/>{activeSub ? "Active" : "Expired"}</span></div>
                         <p>{money(Number(s.amount))} · started {new Date(s.startedAt).toLocaleDateString()} · expires {new Date(s.expiresAt).toLocaleDateString()}</p>
                         {activeSub && <div className="admin-account-item-actions"><button className="outline-btn small danger-outline" disabled={subBusyId === s.id} onClick={() => cancelSubscription(s.kind, s.id)}><X size={13}/> End now</button></div>}
                       </div>; })}
-                    {userDetail.botSubscriptions.length + userDetail.copySubscriptions.length + userDetail.planSubscriptions.length === 0 && <div className="empty-state"><span className="empty-icon"><Sparkles size={27}/></span><h3>No subscriptions</h3><p>This user hasn't subscribed to anything yet.</p></div>}
+                    {userDetail.botSubscriptions.length + userDetail.copySubscriptions.length + userDetail.planSubscriptions.length === 0 && <div className="empty-state"><span className="empty-icon"><Sparkles size={27}/></span><h3>No subscriptions</h3><p>This user hasn&apos;t subscribed to anything yet.</p></div>}
                   </div>
                 </section>
 

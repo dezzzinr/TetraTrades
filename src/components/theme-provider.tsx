@@ -39,7 +39,14 @@ function initialTheme(): ThemeMode {
 // account/device sync) and applied by setting data-theme on <html>, which
 // every CSS custom property in globals.css branches on.
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>(() => initialTheme());
+  // Keep the server render and first browser render identical. The saved or
+  // system preference is applied on the next frame after hydration.
+  const [theme, setThemeState] = useState<ThemeMode>("light");
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setThemeState(initialTheme()));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

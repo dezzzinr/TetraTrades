@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, numeric, boolean, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, numeric, boolean, integer, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -109,6 +109,7 @@ export const holdings = pgTable("holdings", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   symbol: text("symbol").notNull(),
+  instrumentId: text("instrument_id"),
   quantity: numeric("quantity", { precision: 24, scale: 8 }).notNull(),
   avgPrice: numeric("avg_price", { precision: 24, scale: 8 }).notNull(),
 }, (table) => [uniqueIndex("holdings_user_symbol_idx").on(table.userId, table.symbol)]);
@@ -117,6 +118,7 @@ export const trades = pgTable("trades", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   symbol: text("symbol").notNull(),
+  instrumentId: text("instrument_id"),
   side: text("side").notNull(),
   quantity: numeric("quantity", { precision: 24, scale: 8 }).notNull(),
   price: numeric("price", { precision: 24, scale: 8 }).notNull(),
@@ -145,6 +147,7 @@ export const orders = pgTable("orders", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   symbol: text("symbol").notNull(),
+  instrumentId: text("instrument_id"),
   side: text("side").notNull(), // buy | sell
   type: text("type").notNull(), // limit | stop_loss | take_profit
   quantity: numeric("quantity", { precision: 24, scale: 8 }).notNull(),
@@ -176,6 +179,7 @@ export const positions = pgTable("positions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   symbol: text("symbol").notNull(),
+  instrumentId: text("instrument_id"),
   side: text("side").notNull(), // long | short
   leverage: numeric("leverage", { precision: 6, scale: 2 }).notNull(),
   margin: numeric("margin", { precision: 18, scale: 2 }).notNull(), // USD collateral locked from cashBalance
@@ -361,6 +365,7 @@ export const watchlistItems = pgTable("watchlist_items", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   symbol: text("symbol").notNull(),
+  instrumentId: text("instrument_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [uniqueIndex("watchlist_user_symbol_idx").on(table.userId, table.symbol)]);
 
@@ -372,11 +377,25 @@ export const priceAlerts = pgTable("price_alerts", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   symbol: text("symbol").notNull(),
+  instrumentId: text("instrument_id"),
   direction: text("direction").notNull(), // "above" | "below"
   targetPrice: numeric("target_price", { precision: 18, scale: 8 }).notNull(),
   status: text("status").notNull().default("open"), // "open" | "triggered" | "cancelled"
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   triggeredAt: timestamp("triggered_at", { withTimezone: true }),
+});
+
+export const cryptoAssets = pgTable("crypto_assets", {
+  id: text("id").primaryKey(), symbol: text("symbol").notNull(), name: text("name").notNull(),
+  image: text("image"), marketCapRank: integer("market_cap_rank"), platforms: jsonb("platforms").$type<Record<string, string> | null>(),
+  active: boolean("active").notNull().default(true), listedSyncedAt: timestamp("listed_synced_at", { withTimezone: true }),
+  marketUpdatedAt: timestamp("market_updated_at", { withTimezone: true }), marketData: jsonb("market_data").$type<Record<string, unknown> | null>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const marketCache = pgTable("market_cache", {
+  key: text("key").primaryKey(), data: jsonb("data").$type<Record<string, unknown>>().notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Admin-managed destination accounts shown to users for a given deposit

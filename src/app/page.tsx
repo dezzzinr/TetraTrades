@@ -22,6 +22,11 @@ import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { notificationVisual, timeAgo } from "@/lib/notification-visual";
 
 type Page = "Overview" | "Portfolio" | "Trade" | "Trading Bot" | "Markets" | "Plans" | "Copy Trading" | "Deposit" | "Withdraw" | "Trading Signals" | "Transactions" | "Trade History" | "Notifications" | "Profile";
+function deferEffect(task: () => void | (() => void)) {
+  let cleanup: void | (() => void);
+  const timer = window.setTimeout(() => { cleanup = task(); }, 0);
+  return () => { window.clearTimeout(timer); cleanup?.(); };
+}
 const PAGE_VALUES: Page[] = ["Overview", "Portfolio", "Trade", "Trading Bot", "Markets", "Plans", "Copy Trading", "Deposit", "Withdraw", "Trading Signals", "Transactions", "Trade History", "Notifications", "Profile"];
 const LAST_PAGE_KEY = "nexa_last_page";
 type DepositAccount = { id: string; method: string; label: string; instructions: string };
@@ -72,6 +77,11 @@ export default function HomePage() {
 }
 
 function HomePageInner() {
+  const [renderNow, setRenderNow] = useState<number | null>(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setRenderNow(Date.now()), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
   const { t, language, setLanguage, translating } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const confirm = useConfirm();
@@ -380,16 +390,17 @@ function HomePageInner() {
       setMarket(previous => ({ ...previous, status: previous.assets.length ? "stale" : "unavailable" }));
     } finally { setMarketRefreshing(false); }
   };
-  useEffect(() => {
+  useEffect(() => deferEffect(() => {
     void refreshMarket();
     const interval = window.setInterval(() => { if (!document.hidden) void refreshMarket(); }, 60000);
     const onVisible = () => { if (!document.hidden) void refreshMarket(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", onVisible); };
-  }, []);
+  }), []);
   const holdingsKey = data.holdings.map(h => `${h.symbol}:${h.quantity}`).join(",") + `:${data.user.cashBalance}:${data.user.profitBalance}`;
   useEffect(() => {
     if (!ready || page !== "Overview") return;
+    return deferEffect(() => {
     const controller = new AbortController();
     setChartPoints([]);
     setChartStatus("loading");
@@ -403,9 +414,11 @@ function HomePageInner() {
       })
       .catch(() => { if (!controller.signal.aborted) setChartStatus("error"); });
     return () => controller.abort();
+    });
   }, [page, period, symbol, ready, data.user.id, holdingsKey, chartRefresh]);
   useEffect(() => {
     if (!ready || page !== "Trade") return;
+    return deferEffect(() => {
     const controller = new AbortController();
     setCandles([]);
     setCandleStatus("loading");
@@ -419,18 +432,23 @@ function HomePageInner() {
       })
       .catch(() => { if (!controller.signal.aborted) setCandleStatus("error"); });
     return () => controller.abort();
+    });
   }, [page, period, symbol, ready, chartRefresh]);
   const loadMyOrders = async () => { try { const res = await fetch("/api/orders", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); setMyOrders({ open: result.open ?? [], history: result.history ?? [] }); } catch { /* ignore */ } finally { setOrdersLoaded(true); } };
   const loadMyPositions = async () => { try { const res = await fetch("/api/positions", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); setMyPositions({ open: result.open ?? [], history: result.history ?? [] }); } catch { /* ignore */ } finally { setPositionsLoaded(true); } };
-  useEffect(() => { if (ready && (page === "Trade" || page === "Trade History")) { void loadMyOrders(); void loadMyPositions(); } }, [ready, page]);
+  useEffect(() => ready && (page === "Trade" || page === "Trade History") ? deferEffect(() => { void loadMyOrders(); void loadMyPositions(); }) : undefined, [ready, page]);
   const loadMyDeposits = async () => { try { const res = await fetch("/api/deposits", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.requests)) setMyDeposits(result.requests); } catch { /* ignore */ } };
   useEffect(() => {
     if (!ready || page !== "Deposit") return;
+    return deferEffect(() => {
     void loadMyDeposits();
     if (!depositAccountsLoaded) fetch("/api/deposit-accounts", { cache: "no-store" }).then(r => r.json()).then(result => { if (Array.isArray(result.accounts)) setDepositAccounts(result.accounts); setDepositAccountsLoaded(true); }).catch(() => setDepositAccountsLoaded(true));
+    });
   }, [ready, page, depositAccountsLoaded]);
   const methodAccounts = depositAccounts.filter(a => a.method === depositMethod);
-  useEffect(() => { setDepositAccountId(methodAccounts[0]?.id ?? ""); }, [depositMethod, depositAccounts.length]);
+  const selectedDepositAccountId = methodAccounts.some(account => account.id === depositAccountId)
+    ? depositAccountId
+    : methodAccounts[0]?.id ?? "";
   const handleReceiptFile = (file: File | null) => {
     setReceiptError("");
     if (!file) { setReceiptFile(null); return; }
@@ -446,14 +464,14 @@ function HomePageInner() {
     e.preventDefault();
     if (!requireRealAccount()) return;
     if (depositSubmitting) return;
-    if (methodAccounts.length && !depositAccountId) return notify("Select a destination account.", true);
+    if (methodAccounts.length && !selectedDepositAccountId) return notify("Select a destination account.", true);
     if (!receiptFile) return notify("Attach a receipt or screenshot of your payment.", true);
     const amount = Number(depositAmount);
     if (!amount || amount <= 0) return notify("Enter a valid deposit amount.", true);
     if (!(await confirm({ title: "Submit this deposit request?", message: `We'll review your ${typedMoney(depositAmount)} deposit and credit it to your balance once your payment is verified.`, confirmLabel: "Submit request" }))) return;
     setDepositSubmitting(true);
     try {
-      const res = await fetch("/api/deposits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ method: depositMethod, amount, currency, depositAccountId: depositAccountId || null, reference: depositReference, note: depositNote, receipt: receiptFile.dataUrl, receiptFilename: receiptFile.name }) });
+      const res = await fetch("/api/deposits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ method: depositMethod, amount, currency, depositAccountId: selectedDepositAccountId || null, reference: depositReference, note: depositNote, receipt: receiptFile.dataUrl, receiptFilename: receiptFile.name }) });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Something went wrong");
       notify(result.message || "Deposit request submitted");
@@ -475,7 +493,7 @@ function HomePageInner() {
   const assets: Asset[] = market.assets.length ? market.assets : catalogAssets;
   const getAsset = (ticker: string) => assets.find(a => a.symbol === ticker) ?? getCatalogAsset(ticker);
   const hasQuotes = market.assets.length === catalogAssets.length && market.assets.every(a => a.price > 0);
-  const quoteLive = market.status === "live" && hasQuotes && !!market.updatedAt && Date.now() - Date.parse(market.updatedAt) < 10 * 60 * 1000;
+  const quoteLive = renderNow !== null && market.status === "live" && hasQuotes && !!market.updatedAt && renderNow - Date.parse(market.updatedAt) < 10 * 60 * 1000;
   const currentAsset = getAsset(symbol)!;
   const portfolioValue = hasQuotes ? data.holdings.reduce((sum, h) => sum + Number(h.quantity) * (getAsset(h.symbol)?.price ?? 0), 0) : NaN;
   const totalBalance = hasQuotes ? portfolioValue + data.user.cashBalance + data.user.profitBalance : NaN;
@@ -594,11 +612,11 @@ function HomePageInner() {
     } catch (error) { notify(error instanceof Error ? error.message : "Something went wrong", true); } finally { setClosingPositionId(""); }
   };
   const loadMyWithdrawals = async () => { try { const res = await fetch("/api/withdrawals", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.requests)) setMyWithdrawals(result.requests); } catch { /* ignore */ } };
-  useEffect(() => { if (ready && page === "Withdraw") void loadMyWithdrawals(); }, [ready, page]);
+  useEffect(() => ready && page === "Withdraw" ? deferEffect(() => { void loadMyWithdrawals(); }) : undefined, [ready, page]);
 
   // --- Watchlist ---
   const loadWatchlist = async () => { try { const res = await fetch("/api/watchlist", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.symbols)) setWatchlist(result.symbols); } catch { /* ignore */ } finally { setWatchlistLoaded(true); } };
-  useEffect(() => { if (ready && !data.user.isDemo) void loadWatchlist(); }, [ready, data.user.isDemo]);
+  useEffect(() => ready && !data.user.isDemo ? deferEffect(() => { void loadWatchlist(); }) : undefined, [ready, data.user.isDemo]);
   const toggleWatchlist = async (sym: string) => {
     if (!requireRealAccount()) return;
     if (watchlistBusy) return;
@@ -618,7 +636,7 @@ function HomePageInner() {
 
   // --- Price alerts ---
   const loadPriceAlerts = async () => { try { const res = await fetch("/api/price-alerts", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); setPriceAlerts({ open: result.open ?? [], history: result.history ?? [] }); } catch { /* ignore */ } finally { setPriceAlertsLoaded(true); } };
-  useEffect(() => { if (ready && page === "Trade") void loadPriceAlerts(); }, [ready, page]);
+  useEffect(() => ready && page === "Trade" ? deferEffect(() => { void loadPriceAlerts(); }) : undefined, [ready, page]);
   const createPriceAlert = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requireRealAccount()) return;
@@ -662,7 +680,7 @@ function HomePageInner() {
       setNotifOffset(offset);
     } catch { /* ignore */ } finally { setNotifLoading(false); }
   };
-  useEffect(() => { if (ready && page === "Notifications") { void loadAllNotifications(0, notifTypeFilter); if (data.unreadNotifications > 0) fetch("/api/notifications", { method: "POST" }).then(() => refresh()).catch(() => {}); } }, [ready, page]);
+  useEffect(() => ready && page === "Notifications" ? deferEffect(() => { void loadAllNotifications(0, notifTypeFilter); if (data.unreadNotifications > 0) fetch("/api/notifications", { method: "POST" }).then(() => refresh()).catch(() => {}); }) : undefined, [ready, page]);
   const markOneNotificationRead = async (id: string) => {
     if (!(await confirm({ title: "Mark this notification as read?" }))) return;
     try { await fetch(`/api/notifications/${id}`, { method: "PATCH" }); } catch { /* ignore */ }
@@ -676,7 +694,7 @@ function HomePageInner() {
   };
   const loadCopyTraders = async () => { try { const res = await fetch("/api/copy-traders", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.traders)) setCopyTraders(result.traders); } catch { /* ignore */ } finally { setCopyTradersLoaded(true); } };
   const loadMySubscriptions = async () => { try { const res = await fetch("/api/copy-subscriptions", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.subscriptions)) setMySubscriptions(result.subscriptions); } catch { /* ignore */ } };
-  useEffect(() => { if (ready && page === "Copy Trading") { void loadCopyTraders(); void loadMySubscriptions(); } }, [ready, page]);
+  useEffect(() => ready && page === "Copy Trading" ? deferEffect(() => { void loadCopyTraders(); void loadMySubscriptions(); }) : undefined, [ready, page]);
   const subscribeToTrader = async (trader: CopyTrader) => {
     if (!requireRealAccount()) return;
     if (subscribingId) return;
@@ -690,13 +708,14 @@ function HomePageInner() {
       await Promise.all([loadCopyTraders(), loadMySubscriptions(), refresh()]);
     } catch (error) { notify(error instanceof Error ? error.message : "Something went wrong", true); } finally { setSubscribingId(""); }
   };
-  const daysLeft = (expiresAt: string) => Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000));
+  const daysLeft = (expiresAt: string) => renderNow === null ? 0 : Math.max(0, Math.ceil((new Date(expiresAt).getTime() - renderNow) / 86400000));
   // Finer-grained "time remaining" for order/position durations, which can
   // be as short as 15 minutes - daysLeft() above would round everything
   // under a day down to "0 days left".
   const timeLeftLabel = (expiresAt: string | null | undefined) => {
     if (!expiresAt) return "No expiry";
-    const ms = new Date(expiresAt).getTime() - Date.now();
+    if (renderNow === null) return "—";
+    const ms = new Date(expiresAt).getTime() - renderNow;
     if (ms <= 0) return "Expiring...";
     const mins = Math.ceil(ms / 60000);
     if (mins < 60) return `${mins}m left`;
@@ -714,7 +733,7 @@ function HomePageInner() {
   const loadTradingBots = async () => { try { const res = await fetch("/api/bots", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.bots)) setTradingBots(result.bots); } catch { /* ignore */ } finally { setTradingBotsLoaded(true); } };
   const loadBotSubHistory = async () => { try { const res = await fetch("/api/bot-subscriptions", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.subscriptions)) setBotSubHistory(result.subscriptions); } catch { /* ignore */ } };
   const loadBotInstances = async () => { try { const res = await fetch("/api/bot-instances", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.instances)) setBotInstances(result.instances); } catch { /* ignore */ } };
-  useEffect(() => { if (ready && page === "Trading Bot") { void loadTradingBots(); void loadBotSubHistory(); void loadBotInstances(); } }, [ready, page]);
+  useEffect(() => ready && page === "Trading Bot" ? deferEffect(() => { void loadTradingBots(); void loadBotSubHistory(); void loadBotInstances(); }) : undefined, [ready, page]);
   const subscribeToBot = async (bot: TradingBot) => {
     if (!requireRealAccount()) return;
     if (botSubscribingId) return;
@@ -775,7 +794,7 @@ function HomePageInner() {
   };
   const loadPlans = async () => { try { const res = await fetch("/api/plans", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.plans)) setPlansCatalog(result.plans); } catch { /* ignore */ } finally { setPlansLoaded(true); } };
   const loadPlanSubHistory = async () => { try { const res = await fetch("/api/plan-subscriptions", { cache: "no-store" }); if (!res.ok) return; const result = await res.json(); if (Array.isArray(result.subscriptions)) setPlanSubHistory(result.subscriptions); } catch { /* ignore */ } };
-  useEffect(() => { if (ready && page === "Plans") { void loadPlans(); void loadPlanSubHistory(); } }, [ready, page]);
+  useEffect(() => ready && page === "Plans" ? deferEffect(() => { void loadPlans(); void loadPlanSubHistory(); }) : undefined, [ready, page]);
   const subscribeToPlan = async (plan: Plan) => {
     if (!requireRealAccount()) return;
     if (planSubscribingId) return;
@@ -832,7 +851,7 @@ function HomePageInner() {
     <label className="input-label">Amount in {currency}</label>
     <div className="amount-input"><span>{inputSymbol}</span><input type="number" min={inMyCurrency(0.01)} step="0.01" placeholder="0.00" value={tradeAmount} onChange={e => setTradeAmount(e.target.value)} required/><span>{currency}</span></div>
     {amountHint(tradeAmount)}
-    <div className="trade-details"><div><span>Indicative market price</span><strong>{marketPrice(currentAsset.price)}</strong></div><div><span>You'll {side === "buy" ? "receive" : "sell"}</span><strong>≈ {tradeAmount && currentAsset.price > 0 ? fmtQty(Math.floor((usdOf(tradeAmount) / currentAsset.price) * 1e8) / 1e8) : "0"} {symbol}</strong></div><div><span>Available</span><strong>{side === "buy" ? money(data.user.cashBalance) : `${fmtQty(Number(data.holdings.find(h => h.symbol === symbol)?.quantity ?? 0))} ${symbol}`}</strong></div></div>
+    <div className="trade-details"><div><span>Indicative market price</span><strong>{marketPrice(currentAsset.price)}</strong></div><div><span>You&apos;ll {side === "buy" ? "receive" : "sell"}</span><strong>≈ {tradeAmount && currentAsset.price > 0 ? fmtQty(Math.floor((usdOf(tradeAmount) / currentAsset.price) * 1e8) / 1e8) : "0"} {symbol}</strong></div><div><span>Available</span><strong>{side === "buy" ? money(data.user.cashBalance) : `${fmtQty(Number(data.holdings.find(h => h.symbol === symbol)?.quantity ?? 0))} ${symbol}`}</strong></div></div>
     <button className={`primary-btn full-btn ${side === "sell" ? "sell-btn" : ""}`} disabled={loading || !ready || !quoteLive}>{loading ? "Processing..." : !quoteLive ? "Waiting for live prices" : `${side === "buy" ? "Buy" : "Sell"} ${symbol}`} <ArrowRight size={17}/></button>
     <p className={`trade-quote-note ${quoteLive ? "" : "offline"}`}>{quoteLive ? "Final Live-trade price is verified by the server at execution." : "Live trading pauses until current market quotes are available."}</p>
     <p className="simulation-note"><ShieldCheck size={13}/> Live trading only.</p>
@@ -882,7 +901,7 @@ function HomePageInner() {
       {amountHint(tradeAmount)}
       <div className="trade-details">
         <div><span>{orderType === "market" ? "Indicative market price" : "Order price"}</span><strong>{price > 0 ? marketPrice(price) : "—"}</strong></div>
-        {isTimedMarketTrade ? <div><span>Exposure</span><strong>≈ {qty ? fmtQty(qty) : "0"} {symbol} ({side === "buy" ? "long" : "short"})</strong></div> : <div><span>You'll {side === "buy" ? "receive" : "sell"}</span><strong>≈ {qty ? fmtQty(qty) : "0"} {symbol}</strong></div>}
+        {isTimedMarketTrade ? <div><span>Exposure</span><strong>≈ {qty ? fmtQty(qty) : "0"} {symbol} ({side === "buy" ? "long" : "short"})</strong></div> : <div><span>You&apos;ll {side === "buy" ? "receive" : "sell"}</span><strong>≈ {qty ? fmtQty(qty) : "0"} {symbol}</strong></div>}
         <div><span>Available</span><strong>{side === "buy" || isTimedMarketTrade ? money(data.user.cashBalance) : `${fmtQty(Number(data.holdings.find(h => h.symbol === symbol)?.quantity ?? 0))} ${symbol}`}</strong></div>
       </div>
       <button className={`primary-btn full-btn ${side === "sell" ? "sell-btn" : ""}`} disabled={loading || !ready || !quoteLive}>{loading ? "Processing..." : !quoteLive ? "Waiting for live prices" : orderType === "market" ? `${isTimedMarketTrade ? "Open timed" : side === "buy" ? "Buy" : "Sell"} ${symbol}${isTimedMarketTrade ? ` (${side === "buy" ? "long" : "short"})` : ""}` : `Place ${orderTypeLabel(orderType)} order`} <ArrowRight size={17}/></button>
@@ -1154,7 +1173,7 @@ function HomePageInner() {
         <div className="section-title-row"><div><h2>My bot subscriptions</h2><p>Your trading bot subscription history</p></div></div>
         {botSubHistory.length === 0 ? <EmptyState icon={History} title="No subscriptions yet" text="Subscribe to a bot above to see your history here."/> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Bot</th><th>Amount</th><th>Started</th><th>Expires</th><th>Status</th></tr></thead><tbody>{botSubHistory.map(s=>{
           const left = daysLeft(s.expiresAt);
-          const active = new Date(s.expiresAt).getTime() > Date.now();
+          const active = renderNow === null || new Date(s.expiresAt).getTime() > renderNow;
           return <tr key={s.id}><td><div className="coin-cell"><div><strong>{s.botName}</strong></div></div></td><td className="table-strong">{money(Number(s.amount))}</td><td className="muted-cell">{new Date(s.startedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</td><td className="muted-cell">{new Date(s.expiresAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</td><td>{active ? <span className="status-pill"><span/>Active · {left}d left</span> : <span className="status-pill expired"><span/>Expired</span>}</td></tr>;
         })}</tbody></table></div>}
       </>}
@@ -1188,11 +1207,11 @@ function HomePageInner() {
             </div>
           </div>;
         })}</div>}
-        <div className="copy-note"><ShieldCheck size={19}/><span>Subscribing charges your available account balance and grants 7 days of access to that trader's strategy. There is no auto-renewal — resubscribe once your access expires.</span></div>
+        <div className="copy-note"><ShieldCheck size={19}/><span>Subscribing charges your available account balance and grants 7 days of access to that trader&apos;s strategy. There is no auto-renewal — resubscribe once your access expires.</span></div>
         <div className="section-title-row"><div><h2>My subscriptions</h2><p>Your copy trading subscription history</p></div></div>
         {mySubscriptions.length === 0 ? <EmptyState icon={History} title="No subscriptions yet" text="Subscribe to a trader above to see your history here."/> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Trader</th><th>Amount</th><th>Started</th><th>Expires</th><th>Status</th></tr></thead><tbody>{mySubscriptions.map(s=>{
           const left = daysLeft(s.expiresAt);
-          const active = new Date(s.expiresAt).getTime() > Date.now();
+          const active = renderNow === null || new Date(s.expiresAt).getTime() > renderNow;
           return <tr key={s.id}><td><div className="coin-cell"><div><strong>{s.traderName}</strong><span>{s.traderHandle}</span></div></div></td><td className="table-strong">{money(Number(s.amount))}</td><td className="muted-cell">{new Date(s.startedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</td><td className="muted-cell">{new Date(s.expiresAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</td><td>{active ? <span className="status-pill"><span/>Active · {left}d left</span> : <span className="status-pill expired"><span/>Expired</span>}</td></tr>;
         })}</tbody></table></div>}
       </>}
@@ -1204,7 +1223,7 @@ function HomePageInner() {
           return <div className="panel signal-card" key={a.symbol}>
             <div className="signal-card-top"><div className="coin-cell"><AssetIcon asset={a} size={42}/><div><strong>{a.name}</strong><span>{a.symbol}/{currency}</span></div></div><span className={`signal-type ${a.change >= 0 ? "buy" : "sell"}`}>{a.change >= 0 ? <TrendingUp size={14}/> : <TrendingDown size={14}/>} {a.change >= 0 ? "Rising" : "Falling"}</span></div>
             <p>{a.name} has {a.change >= 0 ? "gained" : "declined"} {Math.abs(a.change).toFixed(2)}% over 24 hours and {a.change7d >= 0 ? "gained" : "declined"} {Math.abs(a.change7d).toFixed(2)}% over 7 days.</p>
-            <div className="confidence-row"><span>Position in today's price range</span><strong>{rangePosition === null ? "—" : `${rangePosition}%`}</strong></div><div className="confidence-track"><span style={{ width: `${rangePosition ?? 0}%` }}/></div>
+            <div className="confidence-row"><span>Position in today&apos;s price range</span><strong>{rangePosition === null ? "—" : `${rangePosition}%`}</strong></div><div className="confidence-track"><span style={{ width: `${rangePosition ?? 0}%` }}/></div>
             <div className="signal-levels"><div><span>Current quote</span><strong>{marketPrice(a.price)}</strong></div><div><span>24h low</span><strong>{a.low24h === null ? "—" : marketPrice(a.low24h)}</strong></div><div><span>24h high</span><strong>{a.high24h === null ? "—" : marketPrice(a.high24h)}</strong></div></div>
             <div className="signal-bottom"><span><Clock3 size={14}/> Updated {a.updatedAt ? new Date(a.updatedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "recently"}</span><button onClick={() => { setSymbol(a.symbol); go("Trade"); }}>View chart <ArrowRight size={15}/></button></div>
           </div>;
@@ -1232,7 +1251,7 @@ function HomePageInner() {
         <div className="section-title-row"><div><h2>My plan subscriptions</h2><p>Your plan subscription history</p></div></div>
         {planSubHistory.length === 0 ? <EmptyState icon={History} title="No subscriptions yet" text="Choose a plan above to see your history here."/> : <div className="table-scroll"><table className="data-table"><thead><tr><th>Plan</th><th>Amount</th><th>Started</th><th>Expires</th><th>Status</th></tr></thead><tbody>{planSubHistory.map(s=>{
           const left = daysLeft(s.expiresAt);
-          const active = new Date(s.expiresAt).getTime() > Date.now();
+          const active = renderNow === null || new Date(s.expiresAt).getTime() > renderNow;
           const isFree = Number(s.amount) === 0;
           return <tr key={s.id}><td><div className="coin-cell"><div><strong>{s.planName}</strong></div></div></td><td className="table-strong">{money(Number(s.amount))}</td><td className="muted-cell">{new Date(s.startedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</td><td className="muted-cell">{isFree ? "No expiry" : new Date(s.expiresAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</td><td>{active ? <span className="status-pill"><span/>Active{!isFree && <> · {left}d left</>}</span> : <span className="status-pill expired"><span/>Expired</span>}</td></tr>;
         })}</tbody></table></div>}
@@ -1253,8 +1272,8 @@ function HomePageInner() {
             <p className="deposit-method-blurb">{DEPOSIT_METHODS.find(m => m.id === depositMethod)?.blurb}</p>
             <SectionHead title="2. Send funds to" subtitle="Admin-provided destination for this method"/>
             {!depositAccountsLoaded ? <div className="deposit-accounts-empty">Loading destination accounts…</div> : methodAccounts.length === 0 ? <div className="deposit-accounts-empty"><AlertTriangle size={16}/> No destination has been configured for this method yet. Please choose another method or check back soon.</div> : <div className="deposit-account-list">
-              {methodAccounts.map(acc => <label key={acc.id} className={`deposit-account-card ${depositAccountId === acc.id ? "chosen" : ""}`}>
-                <input type="radio" name="depositAccount" checked={depositAccountId === acc.id} onChange={() => setDepositAccountId(acc.id)}/>
+              {methodAccounts.map(acc => <label key={acc.id} className={`deposit-account-card ${selectedDepositAccountId === acc.id ? "chosen" : ""}`}>
+                <input type="radio" name="depositAccount" checked={selectedDepositAccountId === acc.id} onChange={() => setDepositAccountId(acc.id)}/>
                 <div><strong>{acc.label}</strong><p>{acc.instructions}</p></div>
               </label>)}
             </div>}

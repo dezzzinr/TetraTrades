@@ -30,12 +30,15 @@ export default function RegisterModal({ onClose, onSwitchToLogin, onRegistered }
   // visible field on this simplified form.
   const [referralCode, setReferralCode] = useState("");
   useEffect(() => {
+    const timer = window.setTimeout(() => {
     try {
       const ref = new URLSearchParams(window.location.search).get("ref");
       if (ref && ref.trim()) setReferralCode(ref.trim());
     } catch {
       // ignore - referral capture is a nice-to-have, never block the form
     }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const selectedCountry = COUNTRIES.find((c) => c.code === country) ?? null;
