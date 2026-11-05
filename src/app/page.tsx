@@ -1287,9 +1287,10 @@ function HomePageInner() {
             <SectionHead title={translateUI("2. Send funds to")} subtitle="Admin-provided destination for this method"/>
             {!depositAccountsLoaded ? <div className="deposit-accounts-empty">{<LocalizedText text={"Loading destination accounts…"}/>}</div> : methodAccounts.length === 0 ? <div className="deposit-accounts-empty"><AlertTriangle size={16}/> {<LocalizedText text={"Currently Unavailable"}/>}</div> : <div className="deposit-account-list">
               {methodAccounts.map(acc => <div key={acc.id} className={`deposit-account-card ${selectedDepositAccountId === acc.id ? "chosen" : ""}`}>
-                <input type="radio" name="depositAccount" aria-label={acc.label} checked={selectedDepositAccountId === acc.id} onChange={() => setDepositAccountId(acc.id)}/>
-                <FundingMethodIcon method={acc.method} size={17}/>
-                <div className="deposit-account-details"><strong>{acc.label}</strong><p>{acc.instructions}</p></div>
+                <button type="button" className="deposit-destination-choice" aria-pressed={selectedDepositAccountId === acc.id} onClick={() => setDepositAccountId(acc.id)}>
+                  <FundingMethodIcon method={acc.method} size={17}/>
+                  <span className="deposit-account-details"><strong>{acc.label}</strong><span>{acc.instructions}</span></span>
+                </button>
                 <button type="button" className="copy-destination-btn" onClick={() => void copyDestination(acc.instructions)} aria-label={translateUI("Copy destination details")} title={translateUI("Copy destination details")}><Copy size={15}/><span>{translateUI("Copy")}</span></button>
               </div>)}
             </div>}
