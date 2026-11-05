@@ -994,4 +994,7 @@ export const UI_STRINGS: string[] = [
   "Destination details copied",
   "Could not copy destination details. Please select and copy them manually.",
   "Copy destination details",
+  "Displayed subscriber count",
+  "Subscriber figures are set by an admin.",
+  "configured subscribers",
 ];

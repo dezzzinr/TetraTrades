@@ -35,7 +35,7 @@ type WithdrawalRequestRow = {
 };
 type DepositAccountRow = { id: string; method: string; label: string; instructions: string; isActive: boolean; createdAt: string; updatedAt: string };
 type CopyTraderRow = { id: string; name: string; handle: string; avatarInitials: string; avatarColor: string; focus: string; bio: string; riskLevel: string; returnPercent: string; winRate: string; subscriptionAmount: string; subscriptionDurationDays: number; rating: string; country: string; photoUrl: string | null; isActive: boolean; activeSubscribers: number; createdAt: string };
-type BotProductRow = { id: string; name: string; description: string; strategy: string; riskLevel: string; minAllocation: string; subscriptionAmount: string; subscriptionDurationDays: number; rating: string; country: string; photoUrl: string | null; isActive: boolean; activeSubscribers: number; createdAt: string };
+type BotProductRow = { id: string; name: string; description: string; strategy: string; riskLevel: string; minAllocation: string; subscriptionAmount: string; subscriptionDurationDays: number; subscriberCount: number; rating: string; country: string; photoUrl: string | null; isActive: boolean; createdAt: string };
 type PlanRow = { id: string; name: string; description: string; priceWeekly: string; features: string[]; isFeatured: boolean; sortOrder: string; isActive: boolean; activeSubscribers: number; createdAt: string };
 
 type AdminUserRow = { id: string; name: string; email: string; role: string; isDemo: boolean; cashBalance: string; profitBalance: string; targetBalance: string; targetProgressPercent: string; accountStatus: string; maxTradeAmount: string | null; withdrawalsBlocked: boolean; statusReason: string | null; statusUpdatedAt: string | null; createdAt: string; username?: string | null; phone?: string | null; country?: string | null; currency?: string | null };
@@ -297,7 +297,7 @@ function AdminPageInner() {
   const [botRows, setBotRows] = useState<BotProductRow[]>([]);
   const [botsLoading, setBotsLoading] = useState(false);
   const [botCreating, setBotCreating] = useState(false);
-  const emptyBotForm = { name: "", description: "", strategy: "DCA" as BotStrategy, riskLevel: "Moderate" as RiskLevel, minAllocation: "", subscriptionAmount: "", subscriptionDurationDays: "7", rating: "4.8", country: DEFAULT_COUNTRY, photoUrl: "" };
+  const emptyBotForm = { name: "", description: "", strategy: "DCA" as BotStrategy, riskLevel: "Moderate" as RiskLevel, minAllocation: "", subscriptionAmount: "", subscriptionDurationDays: "7", subscriberCount: "0", rating: "4.8", country: DEFAULT_COUNTRY, photoUrl: "" };
   const [botForm, setBotForm] = useState(emptyBotForm);
   const [editingBotId, setEditingBotId] = useState<string | null>(null);
   const [editBotForm, setEditBotForm] = useState(emptyBotForm);
@@ -1401,6 +1401,8 @@ function AdminPageInner() {
               <label className="input-label">{<LocalizedText text={"Subscription price (USD)"}/>}</label>
               <input className="text-input" type="number" step="0.01" min="0" placeholder={translateUI("e.g. 19.00")} value={botForm.subscriptionAmount} onChange={e => setBotForm({ ...botForm, subscriptionAmount: e.target.value })}/>
               {currency !== "USD" && <StoredUsdHint typed={botForm.subscriptionAmount} money={money}/>}
+              <label className="input-label">{<LocalizedText text={"Displayed subscriber count"}/>}</label>
+              <input className="text-input" type="number" step="1" min="0" placeholder="0" value={botForm.subscriberCount} onChange={e => setBotForm({ ...botForm, subscriberCount: e.target.value })}/>
               <label className="input-label">{<LocalizedText text={"Subscription duration"}/>}</label>
               <div className="select-wrap"><select value={botForm.subscriptionDurationDays} onChange={e => setBotForm({ ...botForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} {<LocalizedText text={"days"}/>}</option>)}</select></div>
               <label className="input-label">{<LocalizedText text={"Rating (0-5)"}/>}</label>
@@ -1416,7 +1418,7 @@ function AdminPageInner() {
             </form>
           </section>
           <section className="panel admin-panel">
-            <div className="section-head"><div><h2>{<LocalizedText text={"Catalog"}/>}</h2><p>{botRows.length} {<LocalizedText text={"bot"}/>}{botRows.length === 1 ? "" : translateUI("s")} {<LocalizedText text={"· active subscribers shown live"}/>}</p></div><button className="outline-btn small" onClick={loadBots}><RefreshCw size={13} className={botsLoading ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button></div>
+            <div className="section-head"><div><h2>{<LocalizedText text={"Catalog"}/>}</h2><p>{botRows.length} {<LocalizedText text={"bot"}/>}{botRows.length === 1 ? "" : translateUI("s")} {<LocalizedText text={"Subscriber figures are set by an admin."}/>}</p></div><button className="outline-btn small" onClick={loadBots}><RefreshCw size={13} className={botsLoading ? "spin" : ""}/> {<LocalizedText text={"Refresh"}/>}</button></div>
             <div className="admin-account-list">
               {botRows.map(b => <div className={`admin-account-item ${b.isActive ? "" : "inactive"}`} key={b.id}>
                 {editingBotId === b.id ? <div className="admin-account-edit">
@@ -1426,6 +1428,7 @@ function AdminPageInner() {
                   <div className="select-wrap"><select value={editBotForm.riskLevel} onChange={e => setEditBotForm({ ...editBotForm, riskLevel: e.target.value as RiskLevel })}>{RISK_LEVELS.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
                   <input className="text-input" type="number" step="0.01" min="0" value={editBotForm.minAllocation} onChange={e => setEditBotForm({ ...editBotForm, minAllocation: e.target.value })} placeholder={translateUI("Minimum allocation (USD)")}/>
                   <input className="text-input" type="number" step="0.01" min="0" value={editBotForm.subscriptionAmount} onChange={e => setEditBotForm({ ...editBotForm, subscriptionAmount: e.target.value })} placeholder={translateUI("Subscription price (USD)")}/>
+                  <input className="text-input" type="number" step="1" min="0" value={editBotForm.subscriberCount} onChange={e => setEditBotForm({ ...editBotForm, subscriberCount: e.target.value })} placeholder={translateUI("Displayed subscriber count")}/>
                   <div className="select-wrap"><select value={editBotForm.subscriptionDurationDays} onChange={e => setEditBotForm({ ...editBotForm, subscriptionDurationDays: e.target.value })}>{SUBSCRIPTION_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} {<LocalizedText text={"days"}/>}</option>)}</select></div>
                   <input className="text-input" type="number" step="0.1" min="0" max="5" value={editBotForm.rating} onChange={e => setEditBotForm({ ...editBotForm, rating: e.target.value })} placeholder={translateUI("Rating (0-5)")}/>
                   <div className="select-wrap"><select value={editBotForm.country} onChange={e => setEditBotForm({ ...editBotForm, country: e.target.value })}>{COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}</select></div>
@@ -1437,9 +1440,9 @@ function AdminPageInner() {
                 </div> : <>
                   <div className="admin-account-item-top"><strong>{flagEmoji(b.country)} {b.name}</strong><span className={`status-pill ${b.isActive ? "approved" : "rejected"}`}><span/>{b.isActive ? translateUI("Active") : translateUI("Hidden")}</span></div>
                   <p>{b.description}</p>
-                  <p>{b.strategy} {<LocalizedText text={"·"}/>} {b.riskLevel} {<LocalizedText text={"risk · min"}/>} {money(Number(b.minAllocation))} {<LocalizedText text={"· ★"}/>} {Number(b.rating).toFixed(1)} {<LocalizedText text={"·"}/>} {money(Number(b.subscriptionAmount))}{<LocalizedText text={"/"}/>}{b.subscriptionDurationDays}{<LocalizedText text={"d ·"}/>} {b.activeSubscribers} {<LocalizedText text={"active subscriber"}/>}{b.activeSubscribers === 1 ? "" : translateUI("s")}</p>
+                  <p>{b.strategy} {<LocalizedText text={"·"}/>} {b.riskLevel} {<LocalizedText text={"risk · min"}/>} {money(Number(b.minAllocation))} {<LocalizedText text={"· ★"}/>} {Number(b.rating).toFixed(1)} {<LocalizedText text={"·"}/>} {money(Number(b.subscriptionAmount))}{<LocalizedText text={"/"}/>}{b.subscriptionDurationDays}{<LocalizedText text={"d ·"}/>} {b.subscriberCount} {<LocalizedText text={"configured subscribers"}/>}</p>
                   <div className="admin-account-item-actions">
-                    <button className="outline-btn small" onClick={() => { setEditingBotId(b.id); setEditBotForm({ name: b.name, description: b.description, strategy: b.strategy as BotStrategy, riskLevel: b.riskLevel as RiskLevel, minAllocation: b.minAllocation, subscriptionAmount: b.subscriptionAmount, subscriptionDurationDays: String(b.subscriptionDurationDays), rating: b.rating, country: b.country, photoUrl: b.photoUrl ?? "" }); }}>{<LocalizedText text={"Edit"}/>}</button>
+                    <button className="outline-btn small" onClick={() => { setEditingBotId(b.id); setEditBotForm({ name: b.name, description: b.description, strategy: b.strategy as BotStrategy, riskLevel: b.riskLevel as RiskLevel, minAllocation: b.minAllocation, subscriptionAmount: b.subscriptionAmount, subscriptionDurationDays: String(b.subscriptionDurationDays), subscriberCount: String(b.subscriberCount), rating: b.rating, country: b.country, photoUrl: b.photoUrl ?? "" }); }}>{<LocalizedText text={"Edit"}/>}</button>
                     <button className="outline-btn small" disabled={botBusyId === b.id} onClick={() => toggleBotActive(b)}>{b.isActive ? translateUI("Deactivate") : translateUI("Activate")}</button>
                     <button className="outline-btn small danger-outline" disabled={botBusyId === b.id} onClick={() => removeBot(b)}><Trash2 size={13}/> {<LocalizedText text={"Delete"}/>}</button>
                   </div>

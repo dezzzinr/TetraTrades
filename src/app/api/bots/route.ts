@@ -6,8 +6,8 @@ import { getUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// Public (signed-in) catalog of active bot products, with a live "active
-// subscribers" count and the viewer's own active subscription (if any)
+// Public (signed-in) catalog of active bot products, with the admin-set
+// subscriber display count and the viewer's own active subscription (if any)
 // merged in so the UI can show "Subscribed · 3d left" vs. a subscribe button.
 export async function GET(request: NextRequest) {
   try {
@@ -18,8 +18,6 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const activeSubs = await db.select().from(botSubscriptions).where(gt(botSubscriptions.expiresAt, now));
 
-    const subscriberCounts = new Map<string, number>();
-    for (const sub of activeSubs) subscriberCounts.set(sub.botProductId, (subscriberCounts.get(sub.botProductId) ?? 0) + 1);
     const mySubByProduct = new Map(activeSubs.filter((s) => s.userId === user.id).map((s) => [s.botProductId, s]));
 
     const result = products.map((p) => {
@@ -36,7 +34,7 @@ export async function GET(request: NextRequest) {
         rating: p.rating,
         country: p.country,
         photoUrl: p.photoUrl,
-        activeSubscribers: subscriberCounts.get(p.id) ?? 0,
+        subscriberCount: p.subscriberCount,
         mySubscription: mine ? { expiresAt: mine.expiresAt, amount: mine.amount } : null,
       };
     });

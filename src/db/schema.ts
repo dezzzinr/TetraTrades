@@ -211,9 +211,8 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// Admin-managed trading bot catalog. Admins curate the roster and set the
-// price users pay for a 7-day subscription; "active subscribers" is
-// computed from botSubscriptions rather than stored here.
+// Admin-managed trading bot catalog. The displayed subscriber figure is a
+// configurable catalog value; real subscriptions remain in botSubscriptions.
 export const botProducts = pgTable("bot_products", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
@@ -223,6 +222,7 @@ export const botProducts = pgTable("bot_products", {
   minAllocation: numeric("min_allocation", { precision: 18, scale: 2 }).notNull().default("10"),
   subscriptionAmount: numeric("subscription_amount", { precision: 18, scale: 2 }).notNull(), // price for a subscription
   subscriptionDurationDays: integer("subscription_duration_days").notNull().default(7), // length of one subscription period
+  subscriberCount: integer("subscriber_count").notNull().default(0), // admin-set display count, not a live subscription total
   rating: numeric("rating", { precision: 2, scale: 1 }).notNull().default("4.8"), // 0-5 stars, admin-set
   country: text("country").notNull().default("US"), // ISO 3166-1 alpha-2 code, flag derived from it
   photoUrl: text("photo_url"), // optional image URL; falls back to a color glyph when unset

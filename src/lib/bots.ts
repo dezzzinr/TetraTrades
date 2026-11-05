@@ -48,6 +48,11 @@ export function validateBotProductFields(body: Record<string, unknown>, partial:
     if (!Number.isFinite(subscriptionAmount) || subscriptionAmount < 0 || subscriptionAmount > 1000000) return { error: "Enter a valid subscription price." };
     updates.subscriptionAmount = subscriptionAmount.toFixed(2);
   }
+  if (!partial || body.subscriberCount !== undefined) {
+    const subscriberCount = Number(body.subscriberCount ?? 0);
+    if (!Number.isInteger(subscriberCount) || subscriberCount < 0 || subscriberCount > 1000000000) return { error: "Subscriber count must be a whole number between 0 and 1,000,000,000." };
+    updates.subscriberCount = subscriberCount;
+  }
   if (typeof body.isActive === "boolean") updates.isActive = body.isActive;
   const profile = validateProfileFields(body, partial);
   if (profile.error !== undefined) return { error: profile.error };
